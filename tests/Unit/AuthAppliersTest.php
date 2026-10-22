@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Request;
 use Isaacjuwon\Probe\Auth\ApiKeyApplier;
 use Isaacjuwon\Probe\Auth\AuthApplierFactory;
 use Isaacjuwon\Probe\Auth\BasicApplier;
 use Isaacjuwon\Probe\Auth\BearerApplier;
+use Isaacjuwon\Probe\Auth\SessionApplier;
 use Isaacjuwon\Probe\Data\RelayRequest;
 use Isaacjuwon\Probe\Enums\AuthType;
 use Isaacjuwon\Probe\Enums\HttpMethod;
@@ -65,5 +67,26 @@ it('resolves appliers from auth applier factory', function (): void {
 
     expect($factory->forType(type: AuthType::Bearer))->toBeInstanceOf(class: BearerApplier::class)
         ->and($factory->forType(type: AuthType::Basic))->toBeInstanceOf(class: BasicApplier::class)
-        ->and($factory->forType(type: AuthType::ApiKey))->toBeInstanceOf(class: ApiKeyApplier::class);
+        ->and($factory->forType(type: AuthType::ApiKey))->toBeInstanceOf(class: ApiKeyApplier::class)
+        ->and($factory->forType(type: AuthType::Session))->toBeInstanceOf(class: SessionApplier::class);
+});
+
+it('applies session authentication from incoming request cookies', function (): void {
+    $currentRequest = Request::create(
+        uri: 'http://localhost/probe',
+        method: 'GET',
+        cookies: ['laravel_session' => 'sess-abc-123', 'XSRF-TOKEN' => 'xsrf-456'],
+    );
+
+    $applier = new SessionApplier(currentRequest: $currentRequest);
+    $request = new RelayRequest(
+        method: HttpMethod::Get,
+        url: 'http://localhost/api/me',
+        authType: AuthType::Session,
+    );
+
+    $applied = $applier->apply(request: $request);
+
+    expect($applied->headers['Cookie'])->toContain('laravel_session=sess-abc-123')
+        ->and($applied->headers['Cookie'])->toContain('XSRF-TOKEN=xsrf-456');
 });

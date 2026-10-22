@@ -7,8 +7,10 @@
   import { Tabs, TabsList, TabsTrigger, TabsContent } from '$lib/components/ui/tabs';
   import KeyValueEditor from '$lib/components/KeyValueEditor.svelte';
   import CodeEditor from '$lib/editors/CodeEditor.svelte';
-  import { Send, Square, Bookmark, ShieldAlert, Sparkles, UserCheck } from '@lucide/svelte';
-  import { extractPathParams, interpolateUrl } from '$lib/utils';
+  import { Send, Square, Bookmark, ShieldAlert, Sparkles, UserCheck, Share2, Check, Cookie } from '@lucide/svelte';
+  import { extractPathParams, interpolateUrl, copyToClipboard } from '$lib/utils';
+  import { encodeRequestToShareUrl } from '$lib/services/share-url.service';
+  import { generateValue, type GeneratorType } from '$lib/services/value-generator';
   import { useServices } from '$lib/services/context';
   import type { AppUser } from '$lib/api/users.client';
   import { onMount } from 'svelte';
@@ -24,10 +26,11 @@
 
   const services = useServices();
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
-  const authTypes: AuthType[] = ['none', 'bearer', 'basic', 'api_key', 'sanctum_act_as'];
+  const authTypes: AuthType[] = ['none', 'session', 'bearer', 'basic', 'api_key', 'sanctum_act_as'];
 
   let availableUsers = $state<AppUser[]>([]);
   let usersLoading = $state<boolean>(false);
+  let copiedShare = $state<boolean>(false);
 
   const pathParamKeys = $derived(extractPathParams(tab.url));
   const resolvedUrl = $derived(interpolateUrl(tab.url, tab.pathParams));
@@ -68,6 +71,37 @@
       void loadUsers();
     }
   }
+
+  async function handleShare(): Promise<void> {
+    const shareUrl = encodeRequestToShareUrl(tab);
+    const ok = await copyToClipboard(shareUrl);
+    if (ok) {
+      copiedShare = true;
+      setTimeout(() => {
+        copiedShare = false;
+      }, 2000);
+    }
+  }
+
+  function insertIntoBody(type: GeneratorType): void {
+    const val = generateValue(type);
+    if (!tab.body.trim()) {
+      tab.body = JSON.stringify({ [type]: type === 'number' ? Number(val) : type === 'boolean' ? val === 'true' : val }, null, 2);
+    } else {
+      try {
+        const parsed = JSON.parse(tab.body) as Record<string, unknown>;
+        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+          parsed[type] = type === 'number' ? Number(val) : type === 'boolean' ? val === 'true' : val;
+          tab.body = JSON.stringify(parsed, null, 2);
+        } else {
+          tab.body += `\n"${val}"`;
+        }
+      } catch {
+        tab.body += `\n"${val}"`;
+      }
+    }
+    tab.isDirty = true;
+  }
 </script>
 
 <div class="flex flex-col h-full bg-background border-r border-border">
@@ -88,6 +122,16 @@
         <Input
           value={tab.url}
           oninput={handleUrlChange}
+          onclick={(e: MouseEvent) => {
+            const input = e.currentTarget as HTMLInputElement;
+            const pos = input.selectionStart ?? 0;
+            const val = input.value;
+            const before = val.slice(0, pos).lastIndexOf('{');
+            const after = val.indexOf('}', pos);
+            if (before !== -1 && after !== -1 && before < after && !val.slice(before, after).includes(' ')) {
+              input.setSelectionRange(before, after + 1);
+            }
+          }}
           placeholder="https://api.example.com/endpoint"
           class="h-9 font-mono text-xs w-full bg-card/60"
         />
@@ -144,6 +188,20 @@
           <Bookmark class="h-4 w-4" />
         </Button>
       {/if}
+
+      <Button
+        variant="outline"
+        size="icon-sm"
+        onclick={handleShare}
+        class="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+        title="Copy shareable request link"
+      >
+        {#if copiedShare}
+          <Check class="h-4 w-4 text-emerald-400" />
+        {:else}
+          <Share2 class="h-4 w-4" />
+        {/if}
+      </Button>
     </div>
 
     <!-- Resolved URL preview if parameters are present -->
@@ -206,7 +264,7 @@
             </div>
             <div class="space-y-2 max-w-lg">
               {#each pathParamKeys as key}
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
                   <div class="w-32 font-mono text-xs font-semibold text-primary shrink-0 truncate">
                     {`{${key}}`}
                   </div>
@@ -220,6 +278,26 @@
                     }}
                     class="h-8 font-mono text-xs"
                   />
+                  <select
+                    title="Generate sample value"
+                    class="h-8 text-[11px] bg-card/80 border border-border rounded px-1.5 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                    onchange={(e) => {
+                      const sel = e.target as HTMLSelectElement;
+                      const type = sel.value as GeneratorType;
+                      if (type) {
+                        if (!tab.pathParams) tab.pathParams = {};
+                        tab.pathParams[key] = generateValue(type);
+                        tab.isDirty = true;
+                        sel.value = '';
+                      }
+                    }}
+                  >
+                    <option value="" disabled selected>✨ Gen</option>
+                    <option value="uuid">UUID</option>
+                    <option value="timestamp">Timestamp</option>
+                    <option value="number">Number</option>
+                    <option value="name">Name</option>
+                  </select>
                 </div>
               {/each}
             </div>
@@ -395,21 +473,74 @@
                   />
                 </div>
               </div>
+            {:else if tab.authType === 'session'}
+              <div class="p-3 rounded-md bg-card/60 border border-border text-xs space-y-2">
+                <div class="flex items-center gap-2 text-primary font-semibold">
+                  <Cookie class="h-4 w-4" />
+                  <span>Active Browser Session Pass-Through</span>
+                </div>
+                <p class="text-muted-foreground">
+                  Probe automatically forwards your current authenticated web session, session cookies, and CSRF tokens directly into the sub-request without requiring manual token setup.
+                </p>
+              </div>
             {:else}
               <p class="text-xs text-muted-foreground">No authentication will be attached to this request.</p>
             {/if}
           </div>
         </TabsContent>
 
-        <TabsContent value="body" class="m-0 h-full">
-          <CodeEditor
-            value={tab.body}
-            language="json"
-            onChange={({ value }) => {
-              tab.body = value;
-              tab.isDirty = true;
-            }}
-          />
+        <TabsContent value="body" class="m-0 h-full flex flex-col min-h-0">
+          <div class="flex items-center gap-1.5 pb-2 text-xs text-muted-foreground flex-wrap shrink-0">
+            <span class="text-[11px] font-semibold text-foreground/80 flex items-center gap-1">
+              <Sparkles class="h-3 w-3 text-primary" />
+              Quick Values:
+            </span>
+            <button
+              type="button"
+              onclick={() => insertIntoBody('uuid')}
+              class="px-2 py-0.5 rounded bg-card/80 hover:bg-card text-[11px] border border-border/80 transition-colors"
+            >
+              + UUID
+            </button>
+            <button
+              type="button"
+              onclick={() => insertIntoBody('timestamp')}
+              class="px-2 py-0.5 rounded bg-card/80 hover:bg-card text-[11px] border border-border/80 transition-colors"
+            >
+              + Timestamp
+            </button>
+            <button
+              type="button"
+              onclick={() => insertIntoBody('email')}
+              class="px-2 py-0.5 rounded bg-card/80 hover:bg-card text-[11px] border border-border/80 transition-colors"
+            >
+              + Email
+            </button>
+            <button
+              type="button"
+              onclick={() => insertIntoBody('name')}
+              class="px-2 py-0.5 rounded bg-card/80 hover:bg-card text-[11px] border border-border/80 transition-colors"
+            >
+              + Name
+            </button>
+            <button
+              type="button"
+              onclick={() => insertIntoBody('number')}
+              class="px-2 py-0.5 rounded bg-card/80 hover:bg-card text-[11px] border border-border/80 transition-colors"
+            >
+              + Number
+            </button>
+          </div>
+          <div class="flex-1 min-h-0">
+            <CodeEditor
+              value={tab.body}
+              language="json"
+              onChange={({ value }) => {
+                tab.body = value;
+                tab.isDirty = true;
+              }}
+            />
+          </div>
         </TabsContent>
       </div>
     </Tabs>

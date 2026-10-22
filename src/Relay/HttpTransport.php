@@ -14,6 +14,7 @@ final class HttpTransport implements RelayTransport
 {
     public function __construct(
         private readonly ?HostGuard $hostGuard = null,
+        private readonly ?CookieDecryptor $cookieDecryptor = null,
     ) {}
 
     public function send(RelayRequest $request): RelayResult
@@ -52,10 +53,23 @@ final class HttpTransport implements RelayTransport
                 $body = $response->body();
             }
 
+            $cookies = $this->cookieDecryptor !== null
+                ? $this->cookieDecryptor->decryptFromHeaders(headers: $response->headers())
+                : [];
+
+            $dumps = [];
+            $rawBody = $response->body();
+
+            if (str_contains(haystack: $rawBody, needle: 'sf-dump')) {
+                $dumps[] = $rawBody;
+            }
+
             return new RelayResult(
                 status: $response->status(),
                 headers: $response->headers(),
                 body: $body,
+                dumps: $dumps,
+                cookies: $cookies,
             );
         } catch (Throwable $e) {
             return new RelayResult(

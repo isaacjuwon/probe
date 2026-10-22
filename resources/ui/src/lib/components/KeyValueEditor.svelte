@@ -3,6 +3,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Trash2, Plus } from '@lucide/svelte';
   import { generateId } from '$lib/utils';
+  import { generateValue, type GeneratorType } from '$lib/services/value-generator';
 
   export interface Props {
     entries: Record<string, string>;
@@ -101,6 +102,27 @@
           oninput={(e: Event) => onValueChange(row, (e.target as HTMLInputElement).value)}
           class="h-8 text-xs font-mono"
         />
+        <select
+          title="Generate sample value"
+          class="h-8 text-[11px] bg-card/80 border border-border rounded px-1.5 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+          onchange={(e) => {
+            const sel = e.target as HTMLSelectElement;
+            const type = sel.value as GeneratorType;
+            if (type) {
+              onValueChange(row, generateValue(type));
+              sel.value = '';
+            }
+          }}
+        >
+          <option value="" disabled selected>✨ Gen</option>
+          <option value="uuid">UUID</option>
+          <option value="timestamp">Timestamp</option>
+          <option value="date">Date</option>
+          <option value="email">Email</option>
+          <option value="name">Name</option>
+          <option value="number">Number</option>
+          <option value="boolean">Boolean</option>
+        </select>
         <Button
           variant="ghost"
           size="icon-sm"

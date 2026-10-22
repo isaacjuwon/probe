@@ -28,6 +28,7 @@ final class AuthApplierFactory
             new BasicApplier,
             new ApiKeyApplier,
             new ActAsUserApplier,
+            new SessionApplier,
         ];
     }
 

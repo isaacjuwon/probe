@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace Isaacjuwon\Probe;
 
+use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Isaacjuwon\Probe\Auth\ActAsUserApplier;
+use Isaacjuwon\Probe\Auth\ApiKeyApplier;
 use Isaacjuwon\Probe\Auth\AuthApplierFactory;
+use Isaacjuwon\Probe\Auth\BasicApplier;
+use Isaacjuwon\Probe\Auth\BearerApplier;
+use Isaacjuwon\Probe\Auth\SessionApplier;
 use Isaacjuwon\Probe\Collectors\CollectorRegistry;
 use Isaacjuwon\Probe\Collectors\DumpCollector;
 use Isaacjuwon\Probe\Collectors\ExceptionCollector;
@@ -22,6 +28,7 @@ use Isaacjuwon\Probe\Contracts\EndpointSource;
 use Isaacjuwon\Probe\Contracts\RelayTransport;
 use Isaacjuwon\Probe\Contracts\RequestRepository;
 use Isaacjuwon\Probe\Enrichment\EnrichmentPipeline;
+use Isaacjuwon\Probe\Relay\CookieDecryptor;
 use Isaacjuwon\Probe\Relay\HostGuard;
 use Isaacjuwon\Probe\Relay\HttpTransport;
 use Isaacjuwon\Probe\Relay\InProcessTransport;
@@ -132,22 +139,51 @@ final class ProbeServiceProvider extends ServiceProvider
 
     private function registerRelay(): void
     {
-        $this->app->singleton(abstract: AuthApplierFactory::class);
+        $this->app->singleton(
+            abstract: CookieDecryptor::class,
+            concrete: function (Application $app): CookieDecryptor {
+                $encrypter = $app->bound(abstract: Encrypter::class)
+                    ? $app->make(abstract: Encrypter::class)
+                    : null;
+
+                return new CookieDecryptor(encrypter: $encrypter);
+            },
+        );
+
+        $this->app->singleton(
+            abstract: AuthApplierFactory::class,
+            concrete: function (Application $app): AuthApplierFactory {
+                $currentRequest = $app->bound(abstract: 'request') ? $app->make(abstract: 'request') : null;
+
+                return new AuthApplierFactory(appliers: [
+                    new BearerApplier,
+                    new BasicApplier,
+                    new ApiKeyApplier,
+                    new ActAsUserApplier,
+                    new SessionApplier(currentRequest: $currentRequest),
+                ]);
+            },
+        );
 
         $this->app->bind(
             abstract: RelayTransport::class,
             concrete: function (Application $app): RelayTransport {
                 $guard = $app->make(abstract: HostGuard::class);
                 $collectors = $app->make(abstract: CollectorRegistry::class);
+                $cookieDecryptor = $app->make(abstract: CookieDecryptor::class);
 
                 /** @var string $driver */
                 $driver = config(key: 'probe.transport', default: 'in_process');
 
                 $innerTransport = ($driver === 'http')
-                    ? new HttpTransport(hostGuard: $guard)
+                    ? new HttpTransport(
+                        hostGuard: $guard,
+                        cookieDecryptor: $cookieDecryptor,
+                    )
                     : new InProcessTransport(
                         kernel: $app->make(abstract: Kernel::class),
                         hostGuard: $guard,
+                        cookieDecryptor: $cookieDecryptor,
                     );
 
                 $capturingTransport = new QueryCapturingTransport(

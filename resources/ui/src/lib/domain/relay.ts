@@ -27,6 +27,19 @@ export interface CapturedException {
   readonly line?: number;
 }
 
+export interface CapturedCookie {
+  readonly name: string;
+  readonly raw_value?: string | null;
+  readonly decrypted_value?: unknown;
+  readonly is_encrypted?: boolean;
+  readonly domain?: string | null;
+  readonly path?: string;
+  readonly expires?: number;
+  readonly http_only?: boolean;
+  readonly secure?: boolean;
+  readonly same_site?: string | null;
+}
+
 export interface RelayResult {
   readonly status: number;
   readonly headers: Readonly<Record<string, string | string[]>>;
@@ -37,4 +50,5 @@ export interface RelayResult {
   readonly logs: readonly unknown[];
   readonly exceptions: readonly CapturedException[];
   readonly dryRun?: boolean;
+  readonly cookies?: readonly CapturedCookie[];
 }

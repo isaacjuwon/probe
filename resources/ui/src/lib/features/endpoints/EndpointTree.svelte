@@ -69,6 +69,17 @@
       </Button>
     </div>
 
+    <select
+      aria-label="Filter API scope"
+      value={endpointsState.apiScope}
+      onchange={(e: Event) => endpointsState.setApiScope((e.target as HTMLSelectElement).value)}
+      class="w-full h-7 px-2 rounded border border-border bg-background/60 text-[11px] font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+    >
+      {#each endpointsState.availableScopes as scope}
+        <option value={scope.id}>{scope.label}</option>
+      {/each}
+    </select>
+
     <div class="relative">
       <Search class="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
       <Input

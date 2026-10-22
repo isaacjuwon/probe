@@ -16,6 +16,7 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Sun, Moon, Search, PanelLeft, Radio, Plus, FolderTree, Clock } from '@lucide/svelte';
   import { generateId, interpolateUrl } from '$lib/utils';
+  import { extractShareFromSearch } from '$lib/services/share-url.service';
 
   const services = provideServices();
   const tabsState = new TabsState(services.tabRepository);
@@ -131,7 +132,30 @@
   }
 
   onMount(() => {
-    void tabsState.load();
+    void tabsState.load().then(() => {
+      if (typeof window !== 'undefined') {
+        const shared = extractShareFromSearch(window.location.search || window.location.hash);
+        if (shared) {
+          tabsState.open({
+            tab: {
+              id: generateId(),
+              title: shared.title ?? 'Shared Request',
+              method: shared.method ?? 'GET',
+              url: shared.url ?? '',
+              headers: shared.headers ?? {},
+              query: shared.query ?? {},
+              pathParams: shared.pathParams ?? {},
+              body: shared.body ?? '',
+              authType: shared.authType ?? 'none',
+              authPayload: shared.authPayload ?? {},
+              isDirty: false,
+            },
+          });
+          const cleanUrl = window.location.href.split('?')[0].split('#')[0];
+          window.history.replaceState({}, document.title, cleanUrl);
+        }
+      }
+    });
     void endpointsState.load();
     void historyState.load();
 

@@ -7,7 +7,20 @@
   import { Tabs, TabsList, TabsTrigger, TabsContent } from '$lib/components/ui/tabs';
   import { Button } from '$lib/components/ui/button';
   import { Skeleton } from '$lib/components/ui/skeleton';
-  import { Copy, Check, Database, Bug, AlertTriangle, Sparkles, ShieldAlert, Radio } from '@lucide/svelte';
+  import {
+    Copy,
+    Check,
+    Database,
+    Bug,
+    AlertTriangle,
+    Sparkles,
+    ShieldAlert,
+    Radio,
+    Cookie,
+    ChevronLeft,
+    ChevronRight,
+    Lock,
+  } from '@lucide/svelte';
   import { generatePestTest } from '$lib/services/test-generator';
   import { copyToClipboard } from '$lib/utils';
 
@@ -20,6 +33,36 @@
 
   let copiedResponse = $state(false);
   let copiedPest = $state(false);
+  let currentDumpIndex = $state(0);
+  let copiedCookieKey = $state<string | null>(null);
+  let copiedDump = $state(false);
+
+  $effect(() => {
+    if (tab.lastResult) {
+      currentDumpIndex = 0;
+    }
+  });
+
+  async function copyCookie(key: string, val: unknown): Promise<void> {
+    const text = typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val);
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      copiedCookieKey = key;
+      setTimeout(() => {
+        copiedCookieKey = null;
+      }, 2000);
+    }
+  }
+
+  async function copyActiveDump(dumpHtml: string): Promise<void> {
+    const ok = await copyToClipboard(dumpHtml);
+    if (ok) {
+      copiedDump = true;
+      setTimeout(() => {
+        copiedDump = false;
+      }, 2000);
+    }
+  }
 
   const formattedBody = $derived(() => {
     if (!tab.lastResult || tab.lastResult.body === null || tab.lastResult.body === undefined) {
@@ -205,6 +248,15 @@
             >
               Headers ({Object.keys(result.headers).length})
             </TabsTrigger>
+            {#if (result.cookies ?? []).length > 0}
+              <TabsTrigger
+                value="cookies"
+                class="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-9 px-1 text-xs gap-1.5"
+              >
+                <Cookie class="h-3.5 w-3.5 text-amber-400" />
+                Cookies ({result.cookies?.length ?? 0})
+              </TabsTrigger>
+            {/if}
             {#if sseEvents().length > 0}
               <TabsTrigger
                 value="events"
@@ -279,6 +331,75 @@
             </div>
           </TabsContent>
 
+          {#if (result.cookies ?? []).length > 0}
+            <TabsContent value="cookies" class="m-0 space-y-3">
+              <div class="text-xs text-muted-foreground flex items-center justify-between">
+                <span>Decrypted and inspected response cookies:</span>
+                <span class="text-[11px] text-emerald-400 font-mono font-medium">APP_KEY Decryption Active</span>
+              </div>
+              <div class="space-y-2.5">
+                {#each (result.cookies ?? []) as cookie}
+                  <div class="p-3 rounded-md border border-border bg-card/40 space-y-2">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="font-mono text-xs font-semibold text-primary">{cookie.name}</span>
+                        {#if cookie.is_encrypted}
+                          <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                            <Lock class="h-2.5 w-2.5" />
+                            Decrypted
+                          </span>
+                        {:else}
+                          <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground">
+                            Plain
+                          </span>
+                        {/if}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onclick={() => copyCookie(cookie.name, cookie.decrypted_value ?? cookie.raw_value)}
+                        class="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                        title="Copy decrypted value"
+                      >
+                        {#if copiedCookieKey === cookie.name}
+                          <Check class="h-3 w-3 text-emerald-400" />
+                          <span class="text-[10px]">Copied</span>
+                        {:else}
+                          <Copy class="h-3 w-3" />
+                          <span class="text-[10px]">Copy</span>
+                        {/if}
+                      </Button>
+                    </div>
+
+                    <div class="p-2 rounded bg-background/80 border border-border/60 text-xs font-mono select-all overflow-x-auto">
+                      {#if typeof cookie.decrypted_value === 'object' && cookie.decrypted_value !== null}
+                        <pre class="text-foreground">{JSON.stringify(cookie.decrypted_value, null, 2)}</pre>
+                      {:else}
+                        <span class="text-foreground break-all">{cookie.decrypted_value ?? '(empty)'}</span>
+                      {/if}
+                    </div>
+
+                    <div class="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap pt-1 border-t border-border/40">
+                      <span>Path: <strong class="text-foreground font-mono">{cookie.path ?? '/'}</strong></span>
+                      {#if cookie.domain}
+                        <span>Domain: <strong class="text-foreground font-mono">{cookie.domain}</strong></span>
+                      {/if}
+                      {#if cookie.same_site}
+                        <span>SameSite: <strong class="text-foreground font-mono">{cookie.same_site}</strong></span>
+                      {/if}
+                      {#if cookie.http_only}
+                        <span class="text-emerald-400 font-medium">HttpOnly</span>
+                      {/if}
+                      {#if cookie.secure}
+                        <span class="text-cyan-400 font-medium">Secure</span>
+                      {/if}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </TabsContent>
+          {/if}
+
           {#if sseEvents().length > 0}
             <TabsContent value="events" class="m-0 space-y-2">
               {#each sseEvents() as sse, idx}
@@ -312,12 +433,60 @@
           {/if}
 
           {#if result.dumps.length > 0}
-            <TabsContent value="dumps" class="m-0 space-y-2">
-              {#each result.dumps as dump}
-                <div class="p-3 rounded-md border border-border bg-card/60 overflow-x-auto text-xs font-mono">
-                  {@html dump}
+            <TabsContent value="dumps" class="m-0 space-y-3">
+              <div class="flex items-center justify-between p-2 rounded-md bg-card/60 border border-border">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-medium text-muted-foreground">
+                    Dump {currentDumpIndex + 1} of {result.dumps.length}
+                  </span>
+                  {#if result.dumps.length > 1}
+                    <div class="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        disabled={currentDumpIndex === 0}
+                        onclick={() => {
+                          currentDumpIndex = Math.max(0, currentDumpIndex - 1);
+                        }}
+                        class="h-7 w-7"
+                        title="Previous dump"
+                      >
+                        <ChevronLeft class="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        disabled={currentDumpIndex >= result.dumps.length - 1}
+                        onclick={() => {
+                          currentDumpIndex = Math.min(result.dumps.length - 1, currentDumpIndex + 1);
+                        }}
+                        class="h-7 w-7"
+                        title="Next dump"
+                      >
+                        <ChevronRight class="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  {/if}
                 </div>
-              {/each}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onclick={() => copyActiveDump(result.dumps[currentDumpIndex])}
+                  class="h-7 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                >
+                  {#if copiedDump}
+                    <Check class="h-3 w-3 text-emerald-400" />
+                    <span>Copied</span>
+                  {:else}
+                    <Copy class="h-3 w-3" />
+                    <span>Copy Dump</span>
+                  {/if}
+                </Button>
+              </div>
+
+              <div class="p-3 rounded-md border border-border bg-card/60 overflow-x-auto text-xs font-mono">
+                {@html result.dumps[currentDumpIndex]}
+              </div>
             </TabsContent>
           {/if}
         </div>

@@ -12,6 +12,7 @@ final readonly class RelayResult
      * @param  list<mixed>  $dumps
      * @param  list<mixed>  $logs
      * @param  list<mixed>  $exceptions
+     * @param  list<mixed>  $cookies
      */
     public function __construct(
         public int $status,
@@ -23,6 +24,7 @@ final readonly class RelayResult
         public array $logs = [],
         public array $exceptions = [],
         public bool $dryRun = false,
+        public array $cookies = [],
     ) {}
 
     /**
@@ -40,6 +42,7 @@ final readonly class RelayResult
             'logs' => $this->logs,
             'exceptions' => $this->exceptions,
             'dry_run' => $this->dryRun,
+            'cookies' => $this->cookies,
         ];
     }
 }

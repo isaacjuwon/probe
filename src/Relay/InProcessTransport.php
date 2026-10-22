@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Isaacjuwon\Probe\Contracts\RelayTransport;
 use Isaacjuwon\Probe\Data\RelayRequest;
 use Isaacjuwon\Probe\Data\RelayResult;
+use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Throwable;
 
@@ -18,6 +19,7 @@ final class InProcessTransport implements RelayTransport
     public function __construct(
         private readonly Kernel $kernel,
         private readonly ?HostGuard $hostGuard = null,
+        private readonly ?CookieDecryptor $cookieDecryptor = null,
     ) {}
 
     public function send(RelayRequest $request): RelayResult
@@ -87,11 +89,24 @@ final class InProcessTransport implements RelayTransport
             }
         }
 
+        $cookies = [];
+        $cookieHeader = $request->headers['Cookie'] ?? $request->headers['cookie'] ?? null;
+
+        if (is_string(value: $cookieHeader)) {
+            foreach (explode(separator: ';', string: $cookieHeader) as $part) {
+                $pieces = explode(separator: '=', string: trim(string: $part), limit: 2);
+
+                if (count(value: $pieces) === 2) {
+                    $cookies[trim(string: $pieces[0])] = urldecode(string: trim(string: $pieces[1]));
+                }
+            }
+        }
+
         return Request::create(
             uri: $request->url,
             method: $request->method->value,
             parameters: $request->query,
-            cookies: [],
+            cookies: $cookies,
             files: [],
             server: $server,
             content: $content,
@@ -114,11 +129,18 @@ final class InProcessTransport implements RelayTransport
         /** @var array<string, mixed> $headers */
         $headers = $response->headers->all();
 
+        /** @var list<Cookie> $rawCookies */
+        $rawCookies = $response->headers->getCookies();
+        $cookies = $this->cookieDecryptor !== null
+            ? $this->cookieDecryptor->decryptResponseCookies(cookies: $rawCookies)
+            : [];
+
         return new RelayResult(
             status: $response->getStatusCode(),
             headers: $headers,
             body: $body,
             dryRun: $dryRun,
+            cookies: $cookies,
         );
     }
 
