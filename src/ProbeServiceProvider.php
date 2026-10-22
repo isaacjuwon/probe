@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Isaacjuwon\Probe;
 
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Isaacjuwon\Probe\Auth\AuthApplierFactory;
@@ -97,6 +98,16 @@ final class ProbeServiceProvider extends ServiceProvider
                 return new HostGuard(
                     allowedHosts: $allowedHosts,
                     appUrl: $appUrl,
+                    currentHostResolver: static function () use ($app): ?string {
+                        if ($app->bound(abstract: 'request')) {
+                            /** @var Request $request */
+                            $request = $app->make(abstract: 'request');
+
+                            return $request->getHost();
+                        }
+
+                        return null;
+                    },
                 );
             },
         );

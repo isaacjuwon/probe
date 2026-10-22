@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Gate;
 use Isaacjuwon\Probe\Actions\SendRelayRequest;
 use Isaacjuwon\Probe\Http\Requests\RelayFormRequest;
 use Isaacjuwon\Probe\Http\Resources\RelayResultResource;
+use Isaacjuwon\Probe\Relay\Exceptions\HostNotAllowedException;
 use Isaacjuwon\Probe\Relay\RelayRequestBuilder;
 
 final class RelayController
@@ -25,8 +26,12 @@ final class RelayController
             ->fromArray(payload: $request->validated())
             ->build();
 
-        $result = ($this->sendRelayRequest)(request: $relayRequest);
+        try {
+            $result = ($this->sendRelayRequest)(request: $relayRequest);
 
-        return new RelayResultResource(resource: $result);
+            return new RelayResultResource(resource: $result);
+        } catch (HostNotAllowedException $e) {
+            abort(code: 403, message: $e->getMessage());
+        }
     }
 }

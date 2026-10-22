@@ -45,9 +45,13 @@ it('blocks disallowed hosts when hostguard is enabled', function (): void {
     $guard = new HostGuard(
         allowedHosts: ['localhost'],
         appUrl: 'http://localhost',
+        currentHostResolver: static fn (): string => 'probe-test-app.test',
     );
 
     expect($guard->isAllowed(url: 'http://localhost/api/test'))->toBeTrue()
+        ->and($guard->isAllowed(url: 'http://probe-test-app.test/api/users'))->toBeTrue()
+        ->and($guard->isAllowed(url: 'http://myapp.local/api/users'))->toBeTrue()
+        ->and($guard->isAllowed(url: 'http://192.168.1.50/api/users'))->toBeTrue()
         ->and($guard->isAllowed(url: 'http://malicious-external-site.com/steal'))->toBeFalse();
 
     $transport = new HttpTransport(hostGuard: $guard);
