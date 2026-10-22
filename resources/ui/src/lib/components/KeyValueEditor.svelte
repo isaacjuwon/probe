@@ -2,6 +2,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Trash2, Plus } from '@lucide/svelte';
+  import { generateId } from '$lib/utils';
 
   export interface Props {
     entries: Record<string, string>;
@@ -23,7 +24,7 @@
   $effect(() => {
     if (!initialLoaded) {
       rows = Object.entries(entries).map(([k, v]) => ({
-        id: crypto.randomUUID(),
+        id: generateId(),
         key: k,
         value: v,
         enabled: true,
@@ -44,7 +45,7 @@
 
   function addRow(): void {
     rows.push({
-      id: crypto.randomUUID(),
+      id: generateId(),
       key: '',
       value: '',
       enabled: true,

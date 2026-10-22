@@ -7,6 +7,7 @@
   import { Button } from '$lib/components/ui/button';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Search, RotateCw, Folder } from '@lucide/svelte';
+  import { generateId } from '$lib/utils';
 
   export interface Props {
     readonly endpointsState: EndpointsState;
@@ -17,13 +18,17 @@
 
   function openEndpointInTab(endpoint: Endpoint): void {
     const bodyObj: Record<string, unknown> = {};
-    for (const [name, field] of Object.entries(endpoint.fields)) {
-      bodyObj[name] = field.example;
+    if (endpoint.fields && typeof endpoint.fields === 'object') {
+      for (const [name, field] of Object.entries(endpoint.fields)) {
+        if (field && typeof field === 'object' && 'example' in field) {
+          bodyObj[name] = field.example;
+        }
+      }
     }
 
     tabsState.open({
       tab: {
-        id: crypto.randomUUID(),
+        id: generateId(),
         title: endpoint.name || endpoint.uri,
         method: endpoint.method,
         url: window.location.origin + '/' + endpoint.uri.replace(/^\//, ''),

@@ -8,8 +8,8 @@ export class EndpointsState {
   loading = $state<boolean>(false);
   error = $state<string | null>(null);
 
-  filtered = $derived(
-    this.endpoints.filter((e) => {
+  get filtered(): Endpoint[] {
+    return this.endpoints.filter((e) => {
       const matchesSearch =
         this.searchQuery.trim() === '' ||
         e.uri.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
@@ -20,12 +20,12 @@ export class EndpointsState {
         this.selectedGroup === null || (e.group ?? 'General') === this.selectedGroup;
 
       return matchesSearch && matchesGroup;
-    })
-  );
+    });
+  }
 
-  groups = $derived(
-    Array.from(new Set(this.endpoints.map((e) => e.group ?? 'General'))).sort()
-  );
+  get groups(): string[] {
+    return Array.from(new Set(this.endpoints.map((e) => e.group ?? 'General'))).sort();
+  }
 
   constructor(private readonly client: EndpointClient) {}
 

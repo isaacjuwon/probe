@@ -1,10 +1,14 @@
 import type { RequestTab } from '$lib/domain/request-tab';
 import type { TabRepository } from '$lib/persistence/tab.repository';
+import { generateId } from '$lib/utils';
 
 export class TabsState {
   tabs = $state<RequestTab[]>([]);
   activeId = $state<string | null>(null);
-  active = $derived(this.tabs.find((tab) => tab.id === this.activeId) ?? null);
+
+  get active(): RequestTab | null {
+    return this.tabs.find((tab) => tab.id === this.activeId) ?? null;
+  }
 
   constructor(private readonly repository: TabRepository) {}
 
@@ -23,7 +27,7 @@ export class TabsState {
       this.activeId = existing.id;
       return;
     }
-    this.tabs.push(options.tab);
+    this.tabs = [...this.tabs, options.tab];
     this.activeId = options.tab.id;
     void this.repository.save({ tab: options.tab });
   }
@@ -32,14 +36,15 @@ export class TabsState {
     const index = this.tabs.findIndex((t) => t.id === options.id);
     if (index === -1) return;
 
-    this.tabs.splice(index, 1);
+    const remaining = this.tabs.filter((t) => t.id !== options.id);
+    this.tabs = remaining;
     void this.repository.delete({ id: options.id });
 
     if (this.activeId === options.id) {
-      this.activeId = this.tabs[Math.max(0, index - 1)]?.id ?? null;
+      this.activeId = remaining[Math.max(0, index - 1)]?.id ?? null;
     }
 
-    if (this.tabs.length === 0) {
+    if (remaining.length === 0) {
       this.createDefaultTab();
     }
   }
@@ -49,18 +54,21 @@ export class TabsState {
   }
 
   updateActive(options: { readonly updates: Partial<RequestTab> }): void {
-    if (!this.active) return;
-    Object.assign(this.active, options.updates);
-    this.active.isDirty = true;
-    void this.repository.save({ tab: this.active });
+    const current = this.active;
+    if (!current) return;
+    Object.assign(current, options.updates);
+    current.isDirty = true;
+    this.tabs = [...this.tabs];
+    void this.repository.save({ tab: current });
   }
 
   createDefaultTab(): RequestTab {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
     const tab: RequestTab = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       title: 'New Request',
       method: 'GET',
-      url: 'http://localhost/api/',
+      url: `${origin}/api/`,
       headers: { Accept: 'application/json' },
       query: {},
       body: '',

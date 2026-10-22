@@ -12,7 +12,7 @@
   import CommandPalette from '$lib/features/palette/CommandPalette.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Badge } from '$lib/components/ui/badge';
-  import { Sun, Moon, Search, PanelLeft, Radio } from '@lucide/svelte';
+  import { Sun, Moon, Search, PanelLeft, Radio, Plus } from '@lucide/svelte';
 
   const services = provideServices();
   const tabsState = new TabsState(services.tabRepository);
@@ -200,8 +200,17 @@
           </div>
         </div>
       {:else}
-        <div class="flex-1 flex items-center justify-center p-8 text-muted-foreground text-sm">
-          No request open. Click a route on the left or press '+' to open a tab.
+        <div class="flex-1 flex flex-col items-center justify-center p-8 text-muted-foreground text-sm gap-3">
+          <p>No request open. Click a route on the left or open a tab.</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onclick={() => tabsState.createDefaultTab()}
+            class="text-xs gap-1.5"
+          >
+            <Plus class="h-3.5 w-3.5" />
+            <span>Open New Tab</span>
+          </Button>
         </div>
       {/if}
     </main>
