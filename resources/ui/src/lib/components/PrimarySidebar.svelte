@@ -14,6 +14,7 @@
     ChevronsLeft,
     Radio,
     ShieldCheck,
+    Cookie,
   } from '@lucide/svelte';
 
   export type ActiveTool =
@@ -22,6 +23,7 @@
     | 'collections'
     | 'telemetry'
     | 'impersonate'
+    | 'cookies'
     | 'environment'
     | 'docs';
 
@@ -33,6 +35,7 @@
     historyCount?: number;
     savedCount?: number;
     queriesCount?: number;
+    cookiesCount?: number;
     hasException?: boolean;
     activePersona?: string | null;
     environment?: string;
@@ -48,6 +51,7 @@
     historyCount = 0,
     savedCount = 0,
     queriesCount = 0,
+    cookiesCount = 0,
     hasException = false,
     activePersona = null,
     environment = 'local',
@@ -114,6 +118,13 @@
       icon: activePersona ? ShieldCheck : Users,
       badge: activePersona ? 'Act' : null,
       badgeClass: 'bg-primary text-primary-foreground font-semibold',
+    },
+    {
+      id: 'cookies',
+      label: 'Cookies',
+      icon: Cookie,
+      badge: cookiesCount > 0 ? cookiesCount : null,
+      badgeClass: 'bg-amber-500/15 text-amber-500 font-mono',
     },
     {
       id: 'environment',

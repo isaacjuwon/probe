@@ -20,6 +20,7 @@
     ChevronLeft,
     ChevronRight,
     Lock,
+    Download,
   } from '@lucide/svelte';
   import { generatePestTest } from '$lib/services/test-generator';
   import { copyToClipboard } from '$lib/utils';
@@ -32,6 +33,7 @@
   const { tab, requestState }: Props = $props();
 
   let copiedResponse = $state(false);
+  let downloadedResponse = $state(false);
   let copiedPest = $state(false);
   let currentDumpIndex = $state(0);
   let copiedCookieKey = $state<string | null>(null);
@@ -42,6 +44,57 @@
       currentDumpIndex = 0;
     }
   });
+
+  function downloadResponse(): void {
+    if (!tab.lastResult) return;
+    const body = formattedBody();
+    if (!body) return;
+
+    const rawHeaders = tab.lastResult.headers;
+    const contentType = (rawHeaders['content-type'] ?? rawHeaders['Content-Type'] ?? 'application/json') as string;
+    let ext = 'json';
+    if (typeof contentType === 'string') {
+      if (contentType.includes('html')) ext = 'html';
+      else if (contentType.includes('xml')) ext = 'xml';
+      else if (contentType.includes('text')) ext = 'txt';
+      else if (contentType.includes('csv')) ext = 'csv';
+    }
+
+    const safeTitle = (tab.title || 'response').replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+    const filename = `${safeTitle}-${Date.now()}.${ext}`;
+
+    const blob = new Blob([body], { type: typeof contentType === 'string' ? contentType : 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    downloadedResponse = true;
+    setTimeout(() => {
+      downloadedResponse = false;
+    }, 2000);
+  }
+
+  function downloadCookie(cookie: { name: string; decrypted_value?: unknown; raw_value?: string | null }): void {
+    const data = {
+      name: cookie.name,
+      value: cookie.decrypted_value ?? cookie.raw_value,
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cookie-${cookie.name}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
   async function copyCookie(key: string, val: unknown): Promise<void> {
     const text = typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val);
@@ -210,6 +263,7 @@
           size="sm"
           onclick={copyResponse}
           class="h-7 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-card"
+          title="Copy response payload"
         >
           {#if copiedResponse}
             <Check class="h-3.5 w-3.5 text-emerald-400" />
@@ -217,6 +271,22 @@
           {:else}
             <Copy class="h-3.5 w-3.5" />
             <span>Copy</span>
+          {/if}
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onclick={downloadResponse}
+          class="h-7 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-card"
+          title="Download response payload as a file"
+        >
+          {#if downloadedResponse}
+            <Check class="h-3.5 w-3.5 text-emerald-400" />
+            <span class="text-emerald-400 font-medium">Downloaded</span>
+          {:else}
+            <Download class="h-3.5 w-3.5" />
+            <span>Download</span>
           {/if}
         </Button>
       </div>
@@ -248,15 +318,13 @@
             >
               Headers ({Object.keys(result.headers).length})
             </TabsTrigger>
-            {#if (result.cookies ?? []).length > 0}
-              <TabsTrigger
-                value="cookies"
-                class="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-9 px-1 text-xs gap-1.5"
-              >
-                <Cookie class="h-3.5 w-3.5 text-amber-400" />
-                Cookies ({result.cookies?.length ?? 0})
-              </TabsTrigger>
-            {/if}
+            <TabsTrigger
+              value="cookies"
+              class="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-9 px-1 text-xs gap-1.5"
+            >
+              <Cookie class="h-3.5 w-3.5 text-amber-400" />
+              Cookies ({(result.cookies ?? []).length})
+            </TabsTrigger>
             {#if sseEvents().length > 0}
               <TabsTrigger
                 value="events"
@@ -331,10 +399,18 @@
             </div>
           </TabsContent>
 
-          {#if (result.cookies ?? []).length > 0}
-            <TabsContent value="cookies" class="m-0 space-y-3">
+          <TabsContent value="cookies" class="m-0 space-y-3">
+            {#if (result.cookies ?? []).length === 0}
+              <div class="p-8 text-center text-xs text-muted-foreground space-y-2">
+                <Cookie class="h-8 w-8 mx-auto opacity-40 text-amber-500" />
+                <p class="font-medium text-foreground">No cookies returned in this response</p>
+                <p class="text-[11px] text-muted-foreground/80 max-w-sm mx-auto">
+                  The server did not send any <code>Set-Cookie</code> headers. Test with <code>GET /api/v1/cookies/set</code> to inspect auto-decrypted Laravel session and application cookies!
+                </p>
+              </div>
+            {:else}
               <div class="text-xs text-muted-foreground flex items-center justify-between">
-                <span>Decrypted and inspected response cookies:</span>
+                <span>Decrypted and inspected response cookies ({(result.cookies ?? []).length}):</span>
                 <span class="text-[11px] text-emerald-400 font-mono font-medium">APP_KEY Decryption Active</span>
               </div>
               <div class="space-y-2.5">
@@ -354,21 +430,35 @@
                           </span>
                         {/if}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onclick={() => copyCookie(cookie.name, cookie.decrypted_value ?? cookie.raw_value)}
-                        class="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
-                        title="Copy decrypted value"
-                      >
-                        {#if copiedCookieKey === cookie.name}
-                          <Check class="h-3 w-3 text-emerald-400" />
-                          <span class="text-[10px]">Copied</span>
-                        {:else}
-                          <Copy class="h-3 w-3" />
-                          <span class="text-[10px]">Copy</span>
-                        {/if}
-                      </Button>
+
+                      <div class="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onclick={() => copyCookie(cookie.name, cookie.decrypted_value ?? cookie.raw_value)}
+                          class="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                          title="Copy decrypted value"
+                        >
+                          {#if copiedCookieKey === cookie.name}
+                            <Check class="h-3 w-3 text-emerald-400" />
+                            <span class="text-[10px]">Copied</span>
+                          {:else}
+                            <Copy class="h-3 w-3" />
+                            <span class="text-[10px]">Copy</span>
+                          {/if}
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onclick={() => downloadCookie(cookie)}
+                          class="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                          title="Download cookie payload as JSON"
+                        >
+                          <Download class="h-3 w-3" />
+                          <span class="text-[10px]">Download</span>
+                        </Button>
+                      </div>
                     </div>
 
                     <div class="p-2 rounded bg-background/80 border border-border/60 text-xs font-mono select-all overflow-x-auto">
@@ -397,8 +487,8 @@
                   </div>
                 {/each}
               </div>
-            </TabsContent>
-          {/if}
+            {/if}
+          </TabsContent>
 
           {#if sseEvents().length > 0}
             <TabsContent value="events" class="m-0 space-y-2">

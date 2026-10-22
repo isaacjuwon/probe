@@ -14,6 +14,7 @@
   import ImpersonatePanel from '$lib/features/impersonate/ImpersonatePanel.svelte';
   import EnvironmentPanel from '$lib/features/environment/EnvironmentPanel.svelte';
   import DocsExportPanel from '$lib/features/docs/DocsExportPanel.svelte';
+  import CookiesPanel from '$lib/features/cookies/CookiesPanel.svelte';
   import PrimarySidebar, { type ActiveTool } from '$lib/components/PrimarySidebar.svelte';
   import ShortcutsModal from '$lib/components/ShortcutsModal.svelte';
   import RequestPanel from '$lib/features/request/RequestPanel.svelte';
@@ -36,6 +37,7 @@
     Users,
     Sliders,
     BookOpen,
+    Cookie,
   } from '@lucide/svelte';
   import { generateId, interpolateUrl } from '$lib/utils';
   import { extractShareFromSearch } from '$lib/services/share-url.service';
@@ -386,6 +388,7 @@
       historyCount={historyState.items.length}
       savedCount={0}
       {queriesCount}
+      cookiesCount={requestState.activeResult?.cookies?.length ?? 0}
       {hasException}
       {activePersona}
       environment={config.environment}
@@ -417,6 +420,9 @@
             {:else if activeTool === 'impersonate'}
               <Users class="h-3.5 w-3.5 text-primary" />
               <span>Sanctum Users</span>
+            {:else if activeTool === 'cookies'}
+              <Cookie class="h-3.5 w-3.5 text-amber-500" />
+              <span>Cookies Inspector</span>
             {:else if activeTool === 'environment'}
               <Sliders class="h-3.5 w-3.5 text-primary" />
               <span>Environment</span>
@@ -449,6 +455,8 @@
             <TelemetryPanel {requestState} {historyState} />
           {:else if activeTool === 'impersonate'}
             <ImpersonatePanel {tabsState} {services} />
+          {:else if activeTool === 'cookies'}
+            <CookiesPanel {requestState} {tabsState} />
           {:else if activeTool === 'environment'}
             <EnvironmentPanel {config} />
           {:else if activeTool === 'docs'}
