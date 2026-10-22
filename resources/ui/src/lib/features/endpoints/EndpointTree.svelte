@@ -26,19 +26,21 @@
       }
     }
 
+    const plainEndpoint = $state.snapshot(endpoint);
+
     tabsState.open({
       tab: {
         id: generateId(),
         title: endpoint.name || endpoint.uri,
         method: endpoint.method,
-        url: window.location.origin + '/' + endpoint.uri.replace(/^\//, ''),
+        url: (typeof window !== 'undefined' ? window.location.origin : '') + '/' + endpoint.uri.replace(/^\//, ''),
         headers: { ...endpoint.headers },
         query: {},
         body: Object.keys(bodyObj).length > 0 ? JSON.stringify(bodyObj, null, 2) : '',
         authType: endpoint.auth,
         authPayload: {},
         lastResult: null,
-        endpoint,
+        endpoint: plainEndpoint,
       },
     });
   }

@@ -9,7 +9,17 @@ export class MemoryTabRepository implements TabRepository {
   }
 
   async save(options: SaveTabOptions): Promise<void> {
-    this.tabs.set(options.tab.id, structuredClone(options.tab));
+    let toStore: RequestTab;
+    try {
+      toStore = JSON.parse(JSON.stringify(options.tab)) as RequestTab;
+    } catch {
+      try {
+        toStore = structuredClone(options.tab);
+      } catch {
+        toStore = options.tab;
+      }
+    }
+    this.tabs.set(options.tab.id, toStore);
   }
 
   async delete(options: DeleteTabOptions): Promise<void> {

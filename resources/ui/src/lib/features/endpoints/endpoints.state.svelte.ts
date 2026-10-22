@@ -2,7 +2,7 @@ import type { Endpoint } from '$lib/domain/endpoint';
 import type { EndpointClient } from '$lib/api/endpoint.client';
 
 export class EndpointsState {
-  endpoints = $state<Endpoint[]>([]);
+  endpoints = $state.raw<Endpoint[]>([]);
   searchQuery = $state<string>('');
   selectedGroup = $state<string | null>(null);
   loading = $state<boolean>(false);

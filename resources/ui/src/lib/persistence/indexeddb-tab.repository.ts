@@ -45,6 +45,18 @@ export class IndexedDbTabRepository implements TabRepository {
     });
   }
 
+  private safeClone<T>(value: T): T {
+    try {
+      return JSON.parse(JSON.stringify(value)) as T;
+    } catch {
+      try {
+        return structuredClone(value);
+      } catch {
+        return value;
+      }
+    }
+  }
+
   async save(options: SaveTabOptions): Promise<void> {
     const db = await this.openDb();
     if (!db) {
@@ -52,12 +64,16 @@ export class IndexedDbTabRepository implements TabRepository {
     }
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE_NAME, 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.put(structuredClone(options.tab));
+      try {
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.put(this.safeClone(options.tab));
 
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      } catch (err: unknown) {
+        reject(err);
+      }
     });
   }
 

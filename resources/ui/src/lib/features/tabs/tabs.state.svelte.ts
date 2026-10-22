@@ -29,7 +29,7 @@ export class TabsState {
     }
     this.tabs = [...this.tabs, options.tab];
     this.activeId = options.tab.id;
-    void this.repository.save({ tab: options.tab });
+    void this.repository.save({ tab: $state.snapshot(options.tab) });
   }
 
   close(options: { readonly id: string }): void {
@@ -59,7 +59,7 @@ export class TabsState {
     Object.assign(current, options.updates);
     current.isDirty = true;
     this.tabs = [...this.tabs];
-    void this.repository.save({ tab: current });
+    void this.repository.save({ tab: $state.snapshot(current) });
   }
 
   createDefaultTab(): RequestTab {
