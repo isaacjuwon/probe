@@ -93,11 +93,18 @@ By default, Probe is accessible whenever `APP_ENV` is set to `local` or `testing
 - All active tabs and drafts are persisted into your browser's **IndexedDB**, surviving page reloads and browser restarts.
 
 ### Request Panel
-Organized into 4 intuitive tabs:
-1. **Params**: Query parameters and path parameters (`{id}`, `{user}`).
-2. **Headers**: HTTP headers with auto-completion for common content types (`application/json`, etc.).
-3. **Auth**: Configure authentication credentials.
-4. **Body**: Request body editor.
+Organized into 5 intuitive tabs:
+1. **Path**: Automatically displayed when `{param}` variables exist in the URL (e.g. `/api/users/{id}`). Enter values to dynamically interpolate into the URL bar and preview.
+2. **Params**: Key-value query parameters (`?sort=desc&page=2`).
+3. **Headers**: HTTP headers with auto-completion for common content types (`application/json`, etc.).
+4. **Auth**: Configure authentication credentials or 1-click user impersonation.
+5. **Body**: CodeMirror request body editor with syntax highlighting and formatting.
+
+### Dry Run Mode (Automatic Database Rollback)
+Beside the **Send** button, toggle the **Dry Run** badge:
+- Dispatches the request inside an isolated database transaction.
+- When the request completes, all database changes (`INSERT`, `UPDATE`, `DELETE`) are **automatically rolled back**.
+- Allows you to safely test destructive mutations in local development without corrupting test data.
 
 ### Code Editor & Example Generation
 - Powered by **CodeMirror 6** with dark syntax highlighting.
@@ -108,8 +115,9 @@ Organized into 4 intuitive tabs:
 ### Response Viewer & Telemetry
 After clicking **Send** (`Cmd+Enter` / `Ctrl+Enter`):
 - **Status & Duration Pill**: Displays HTTP response code (e.g. `200 OK`, `201 Created`, `422 Unprocessable`) and execution duration in milliseconds.
-- **Response Body**: Colorized, formatted JSON response with copy-to-clipboard.
-- **Response Headers**: Raw HTTP headers returned by the server.
+- **Copy as Pest Test**: 1-click button that inspects your request and response to generate an idiomatic Pest PHP feature test ready to paste into your test suite.
+- **Validation Errors (422 Diffing)**: When an endpoint returns a `422 Unprocessable Entity`, a dedicated **Validation** tab lists every failing FormRequest rule and field.
+- **Stream Events (SSE)**: For endpoints returning `text/event-stream`, parses events and displays a timeline view.
 - **Database Queries**: A dedicated telemetry tab listing all SQL queries executed during the request lifecycle, complete with execution durations and parameter bindings.
 - **Logs & Dumps**: Any `Log::info()` or `dump()` calls triggered during the controller execution.
 
@@ -131,6 +139,7 @@ Probe includes built-in support for standard API authentication strategies in th
 | Auth Type | Description | Configuration |
 | :--- | :--- | :--- |
 | **None** | No credentials attached. | Default |
+| **Sanctum (Act As)** | 1-click user impersonation without manual login. | Pick an application user from the dropdown. |
 | **Bearer Token** | Injects `Authorization: Bearer <token>`. | Paste API token or JWT. |
 | **Basic Auth** | Base64 encodes username & password. | Provide username and password. |
 | **API Key** | Injects a custom key/value header. | Specify header name (e.g. `X-API-KEY`) and key value. |

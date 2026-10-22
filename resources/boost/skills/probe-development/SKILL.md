@@ -57,12 +57,25 @@ To ensure endpoints are discovered with rich body schemas:
 
 Probe parses rules (`required`, `email`, `in:a,b`, `numeric`, `min`, `max`, `nullable`, `boolean`, `array`) and automatically derives sample values.
 
-### 4. Running Commands
+### 4. Relay Transports & Dry Run Mode
+
+- **In-Process Kernel Dispatch (Default)**: Probe dispatches requests directly through Laravel's HTTP Kernel (`$kernel->handle($subRequest)`) without loopback sockets, avoiding single-threaded worker deadlocks when running `php artisan serve`.
+- **Dry Run Mode**: Wrap any relay request in an isolated database transaction that automatically rolls back when the request completes:
+  ```php
+  $response = $this->postJson('/probe/relay', [
+      'method' => 'POST',
+      'url' => 'http://localhost/api/users',
+      'body' => ['email' => 'test@example.com'],
+      'dry_run' => true,
+  ]);
+  ```
+
+### 5. Running Commands
 
 - Export API catalog: `php artisan probe:export > api.json`
 - Synchronize Scribe documentation: `php artisan probe:scribe-sync`
 
-### 5. Testing Applications Using Probe
+### 6. Testing Applications Using Probe
 
 - When testing Probe features in application test suites, use `Illuminate\Support\Facades\Http::fake()` to stub relayed requests:
 
