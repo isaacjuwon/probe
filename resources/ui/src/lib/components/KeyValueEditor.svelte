@@ -9,7 +9,7 @@
     readonly onChange?: (options: { readonly entries: Record<string, string> }) => void;
   }
 
-  const { entries, onChange }: Props = $props();
+  let { entries = $bindable(), onChange }: Props = $props();
 
   interface Row {
     id: string;
@@ -19,17 +19,17 @@
   }
 
   let rows = $state<Row[]>([]);
-  let initialLoaded = false;
+  let lastSyncedEntries: Record<string, string> | null = null;
 
   $effect(() => {
-    if (!initialLoaded) {
-      rows = Object.entries(entries).map(([k, v]) => ({
+    if (entries !== lastSyncedEntries) {
+      lastSyncedEntries = entries;
+      rows = Object.entries(entries ?? {}).map(([k, v]) => ({
         id: generateId(),
         key: k,
         value: v,
         enabled: true,
       }));
-      initialLoaded = true;
     }
   });
 
@@ -40,16 +40,21 @@
         updated[row.key.trim()] = row.value;
       }
     }
+    entries = updated;
+    lastSyncedEntries = updated;
     onChange?.({ entries: updated });
   }
 
   function addRow(): void {
-    rows.push({
-      id: generateId(),
-      key: '',
-      value: '',
-      enabled: true,
-    });
+    rows = [
+      ...rows,
+      {
+        id: generateId(),
+        key: '',
+        value: '',
+        enabled: true,
+      },
+    ];
     sync();
   }
 
@@ -108,12 +113,7 @@
     {/each}
   </div>
 
-  <Button
-    variant="outline"
-    size="sm"
-    onclick={addRow}
-    class="text-xs h-7 gap-1.5"
-  >
+  <Button variant="outline" size="sm" onclick={addRow} class="text-xs h-7 gap-1.5">
     <Plus class="h-3.5 w-3.5" />
     Add Row
   </Button>

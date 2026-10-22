@@ -5,28 +5,63 @@
   import { TabsState } from '$lib/features/tabs/tabs.state.svelte';
   import { EndpointsState } from '$lib/features/endpoints/endpoints.state.svelte';
   import { RequestState } from '$lib/features/request/request.state.svelte';
+  import { HistoryState } from '$lib/features/history/history.state.svelte';
   import TabBar from '$lib/features/tabs/TabBar.svelte';
   import EndpointTree from '$lib/features/endpoints/EndpointTree.svelte';
+  import HistoryList from '$lib/features/history/HistoryList.svelte';
   import RequestPanel from '$lib/features/request/RequestPanel.svelte';
   import ResponseViewer from '$lib/features/response/ResponseViewer.svelte';
   import CommandPalette from '$lib/features/palette/CommandPalette.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Badge } from '$lib/components/ui/badge';
-  import { Sun, Moon, Search, PanelLeft, Radio, Plus } from '@lucide/svelte';
+  import { Sun, Moon, Search, PanelLeft, Radio, Plus, FolderTree, Clock } from '@lucide/svelte';
+  import { generateId, interpolateUrl } from '$lib/utils';
 
   const services = provideServices();
   const tabsState = new TabsState(services.tabRepository);
   const endpointsState = new EndpointsState(services.endpoints);
   const requestState = new RequestState(services.relay);
+  const historyState = new HistoryState(services.historyRepository);
 
   let commandPaletteOpen = $state(false);
   let sidebarCollapsed = $state(false);
+  let sidebarView = $state<'routes' | 'history'>('routes');
+
+  let sidebarWidth = $state<number>(
+    typeof window !== 'undefined'
+      ? parseInt(localStorage.getItem('probe_sidebar_width') ?? '280', 10)
+      : 280
+  );
+  let requestRatio = $state<number>(
+    typeof window !== 'undefined'
+      ? parseFloat(localStorage.getItem('probe_request_ratio') ?? '50')
+      : 50
+  );
+
+  let isResizingSidebar = $state(false);
+  let isResizingPanes = $state(false);
 
   const config = services.api.getConfig();
 
-  function triggerSend(): void {
+  async function triggerSend(): Promise<void> {
     if (tabsState.active) {
-      void requestState.send({ tab: tabsState.active });
+      const tab = tabsState.active;
+      const result = await requestState.send({ tab });
+      if (result) {
+        void historyState.record({
+          id: generateId(),
+          timestamp: Date.now(),
+          method: tab.method,
+          url: interpolateUrl(tab.url, tab.pathParams),
+          status: result.status,
+          durationMs: result.durationMs,
+          headers: { ...tab.headers },
+          query: { ...tab.query },
+          pathParams: tab.pathParams ? { ...tab.pathParams } : undefined,
+          body: tab.body,
+          dryRun: tab.dryRun,
+        });
+      }
     }
   }
 
@@ -49,9 +84,56 @@
     tab.isDirty = false;
   }
 
+  function startResizeSidebar(e: PointerEvent): void {
+    e.preventDefault();
+    isResizingSidebar = true;
+    const startX = e.clientX;
+    const startW = sidebarWidth;
+
+    function onMove(ev: PointerEvent): void {
+      const newW = Math.min(500, Math.max(200, startW + (ev.clientX - startX)));
+      sidebarWidth = newW;
+      localStorage.setItem('probe_sidebar_width', String(newW));
+    }
+
+    function onUp(): void {
+      isResizingSidebar = false;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    }
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  function startResizePanes(e: PointerEvent): void {
+    e.preventDefault();
+    isResizingPanes = true;
+    const container = (e.currentTarget as HTMLElement).parentElement;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+
+    function onMove(ev: PointerEvent): void {
+      const pct = ((ev.clientX - rect.left) / rect.width) * 100;
+      const clamped = Math.min(80, Math.max(20, pct));
+      requestRatio = clamped;
+      localStorage.setItem('probe_request_ratio', String(clamped));
+    }
+
+    function onUp(): void {
+      isResizingPanes = false;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    }
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
   onMount(() => {
     void tabsState.load();
     void endpointsState.load();
+    void historyState.load();
 
     services.commands.register({
       command: {
@@ -88,6 +170,17 @@
 
     services.commands.register({
       command: {
+        id: 'toggle-sidebar',
+        title: 'Toggle Sidebar',
+        shortcut: '⌘B',
+        run: () => {
+          sidebarCollapsed = !sidebarCollapsed;
+        },
+      },
+    });
+
+    services.commands.register({
+      command: {
         id: 'refresh-endpoints',
         title: 'Refresh Endpoints',
         run: () => endpointsState.load(),
@@ -103,9 +196,29 @@
     });
 
     function handleGlobalShortcuts(e: KeyboardEvent): void {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      const isCmd = e.metaKey || e.ctrlKey;
+      if (!isCmd) return;
+
+      if (e.key === 'Enter') {
         e.preventDefault();
-        triggerSend();
+        void triggerSend();
+      } else if (e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        sidebarCollapsed = !sidebarCollapsed;
+      } else if (e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        tabsState.createDefaultTab();
+      } else if (e.key.toLowerCase() === 'w') {
+        e.preventDefault();
+        if (tabsState.activeId) {
+          tabsState.close({ id: tabsState.activeId });
+        }
+      } else if (e.key >= '1' && e.key <= '9') {
+        const idx = parseInt(e.key, 10) - 1;
+        if (tabsState.tabs[idx]) {
+          e.preventDefault();
+          tabsState.setActive({ id: tabsState.tabs[idx].id });
+        }
       }
     }
 
@@ -125,7 +238,7 @@
         size="icon-sm"
         onclick={() => (sidebarCollapsed = !sidebarCollapsed)}
         class="h-8 w-8 text-muted-foreground hover:text-foreground"
-        title="Toggle sidebar"
+        title="Toggle sidebar (⌘B)"
       >
         <PanelLeft class="h-4 w-4" />
       </Button>
@@ -173,20 +286,64 @@
 
   <!-- Main Split Layout -->
   <div class="flex-1 flex overflow-hidden">
-    <!-- Sidebar: Endpoints -->
+    <!-- Sidebar: Routes & History -->
     {#if !sidebarCollapsed}
-      <aside class="w-72 shrink-0 h-full">
-        <EndpointTree {endpointsState} {tabsState} />
+      <aside style="width: {sidebarWidth}px;" class="shrink-0 h-full flex flex-col border-r border-border bg-card/20 select-none">
+        <!-- Sidebar Navigation switcher (Routes vs History) -->
+        <div class="p-2 border-b border-border flex items-center gap-1 bg-card/40">
+          <button
+            type="button"
+            onclick={() => (sidebarView = 'routes')}
+            class="flex-1 py-1 px-2 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors {sidebarView === 'routes'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'}"
+          >
+            <FolderTree class="h-3.5 w-3.5" />
+            <span>Routes</span>
+          </button>
+          <button
+            type="button"
+            onclick={() => (sidebarView = 'history')}
+            class="flex-1 py-1 px-2 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors {sidebarView === 'history'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'}"
+          >
+            <Clock class="h-3.5 w-3.5" />
+            <span>History ({historyState.items.length})</span>
+          </button>
+        </div>
+
+        <div class="flex-1 min-h-0 overflow-hidden">
+          {#if sidebarView === 'routes'}
+            <EndpointTree {endpointsState} {tabsState} />
+          {:else}
+            <HistoryList {historyState} {tabsState} />
+          {/if}
+        </div>
       </aside>
+
+      <!-- Sidebar resize handle -->
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        onpointerdown={startResizeSidebar}
+        ondblclick={() => {
+          sidebarWidth = 280;
+          localStorage.setItem('probe_sidebar_width', '280');
+        }}
+        class="w-1.5 hover:w-2 -ml-1 hover:bg-primary/50 cursor-col-resize z-20 transition-all select-none {isResizingSidebar ? 'bg-primary w-2' : 'bg-transparent'}"
+        title="Drag to resize sidebar (double-click to reset)"
+      ></div>
     {/if}
 
     <!-- Center Workspace -->
-    <main class="flex-1 flex flex-col h-full overflow-hidden bg-background">
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-background min-w-0">
       <TabBar {tabsState} />
 
       {#if tabsState.active}
-        <div class="flex-1 flex min-h-0 overflow-hidden divide-x divide-border">
-          <div class="w-1/2 h-full overflow-hidden">
+        <div class="flex-1 flex min-h-0 overflow-hidden relative">
+          <!-- Request Panel -->
+          <div style="width: {requestRatio}%;" class="h-full overflow-hidden shrink-0">
             <RequestPanel
               tab={tabsState.active}
               {requestState}
@@ -195,7 +352,21 @@
             />
           </div>
 
-          <div class="w-1/2 h-full overflow-hidden">
+          <!-- Splitter handle between Request & Response -->
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            onpointerdown={startResizePanes}
+            ondblclick={() => {
+              requestRatio = 50;
+              localStorage.setItem('probe_request_ratio', '50');
+            }}
+            class="w-1.5 hover:w-2.5 -ml-1 -mr-1 hover:bg-primary/50 cursor-col-resize z-20 transition-all select-none bg-border/60 {isResizingPanes ? 'bg-primary w-2.5' : ''}"
+            title="Drag to adjust Request / Response ratio (double-click to reset to 50%)"
+          ></div>
+
+          <!-- Response Viewer -->
+          <div style="width: {100 - requestRatio}%;" class="h-full overflow-hidden shrink-0">
             <ResponseViewer tab={tabsState.active} {requestState} />
           </div>
         </div>
@@ -209,7 +380,7 @@
             class="text-xs gap-1.5"
           >
             <Plus class="h-3.5 w-3.5" />
-            <span>Open New Tab</span>
+            <span>Open New Tab (⌘T)</span>
           </Button>
         </div>
       {/if}

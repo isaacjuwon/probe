@@ -4,6 +4,8 @@
   import { Button } from '$lib/components/ui/button';
   import { Plus, X } from '@lucide/svelte';
   import { cn } from '$lib/utils';
+  import { slide } from 'svelte/transition';
+  import { flip } from 'svelte/animate';
 
   export interface Props {
     readonly tabsState: TabsState;
@@ -14,9 +16,11 @@
 
 <div class="flex items-center border-b border-border bg-card/60 px-2 h-10 gap-1 overflow-x-auto no-scrollbar">
   <div class="flex items-center gap-1">
-    {#each tabsState.tabs as tab (tab.id)}
+    {#each tabsState.tabs as tab, idx (tab.id)}
       {@const isActive = tab.id === tabsState.activeId}
       <div
+        animate:flip={{ duration: 150 }}
+        transition:slide={{ axis: 'x', duration: 120 }}
         role="button"
         tabindex="0"
         onclick={() => tabsState.setActive({ id: tab.id })}
@@ -31,6 +35,7 @@
             ? 'bg-background text-foreground border-primary shadow-sm'
             : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
         )}
+        title={idx < 9 ? `Press ⌘${idx + 1} to switch` : undefined}
       >
         <MethodBadge method={tab.method} />
         <span class="truncate">{tab.title}</span>
@@ -58,6 +63,7 @@
     onclick={() => tabsState.createDefaultTab()}
     class="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0 ml-1"
     aria-label="New tab"
+    title="New Tab (⌘T)"
   >
     <Plus class="h-4 w-4" />
   </Button>
