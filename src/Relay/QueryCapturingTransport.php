@@ -43,6 +43,8 @@ final class QueryCapturingTransport implements RelayTransport
             dumps: $dumps,
             logs: $logs,
             exceptions: $exceptions,
+            dryRun: $result->dryRun,
+            cookies: $result->cookies,
         );
     }
 }

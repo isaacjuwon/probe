@@ -42,15 +42,14 @@ final class DumpCollector implements Collector
                     return;
                 }
 
-                $output = '';
-                $dumper->dump(
+                $output = $dumper->dump(
                     data: $cloner->cloneVar(var: $var),
-                    output: function (int $depth, string $val) use (&$output): void {
-                        $output .= $val;
-                    },
+                    output: true,
                 );
 
-                $this->dumps[] = $output;
+                if (is_string(value: $output)) {
+                    $this->dumps[] = $output;
+                }
             },
         );
     }

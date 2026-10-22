@@ -34,6 +34,8 @@ final class TimedTransport implements RelayTransport
             dumps: $result->dumps,
             logs: $result->logs,
             exceptions: $result->exceptions,
+            dryRun: $result->dryRun,
+            cookies: $result->cookies,
         );
     }
 }
