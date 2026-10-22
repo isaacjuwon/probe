@@ -1,41 +1,106 @@
 ---
 name: probe-development
-description: >
-  Configure and apply the Probe package in Laravel applications.
+description: "Configure, customize, and test the Probe in-app REST client package in Laravel applications."
 license: MIT
 metadata:
-  author: Vendor Name
+  author: isaacjuwon
 ---
 
-# Probe
+# Probe Development
 
-Use this skill when a Laravel application needs to integrate the Probe package.
+Use this skill when a Laravel application needs to install, configure, customize authorization for, or test the `isaacjuwon/probe` package.
 
 ## Primary Goal
 
-- apply the `vendor-name/probe` package's public API in the smallest correct way
+Apply the `isaacjuwon/probe` package's public API, configuration, and testing hooks in the smallest correct way.
 
 ## Workflow
 
-### 1. Inspect the Laravel app context
+### 1. Installation & Publishing
 
-- confirm the app is a Laravel project
-- inspect the target code paths where the package should be applied
+- Install as a development dependency:
+  ```bash
+  composer require isaacjuwon/probe --dev
+  ```
+- Publish configuration if custom route prefix, middleware, or storage settings are required:
+  ```bash
+  php artisan vendor:publish --tag="probe-config"
+  ```
+- Public assets are automatically published during `composer install` / `composer update`, but can be refreshed using:
+  ```bash
+  php artisan vendor:publish --tag="probe-assets" --force
+  ```
 
-### 2. Apply the package's public API
+### 2. Authorization Customization
 
-Document how to integrate Probe here, replacing this placeholder with the integration steps for your package.
+By default, Probe restricts access to `local` and `testing` environments via the `viewProbe` Gate.
 
-## Rules, References, and Templates
+To authorize specific users or environments, define the `viewProbe` ability in `AppServiceProvider`:
 
-Read before executing:
+```php
+use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 
-- no additional resource files for this skill
+Gate::define('viewProbe', fn (?User $user = null): bool => 
+    app()->environment(['local', 'testing']) || ($user !== null && $user->is_developer)
+);
+```
 
-## Examples
+### 3. Endpoint Discovery & Validation Rules
 
-- describe a representative integration scenario for Probe
+Probe automatically discovers routes matching `config('probe.route_filters')` (default: prefix `api`, middleware `api`).
+
+To ensure endpoints are discovered with rich body schemas:
+- Typehint `FormRequest` classes in controller action parameters.
+- Or use inline `$request->validate([...])`.
+- Or use Spatie Laravel Data objects.
+
+Probe parses rules (`required`, `email`, `in:a,b`, `numeric`, `min`, `max`, `nullable`, `boolean`, `array`) and automatically derives sample values.
+
+### 4. Running Commands
+
+- Export API catalog: `php artisan probe:export > api.json`
+- Synchronize Scribe documentation: `php artisan probe:scribe-sync`
+
+### 5. Testing Applications Using Probe
+
+- When testing Probe features in application test suites, use `Illuminate\Support\Facades\Http::fake()` to stub relayed requests:
+
+```php
+use Illuminate\Support\Facades\Http;
+
+it('relays requests through probe', function () {
+    Http::fake([
+        'http://localhost/api/users*' => Http::response(
+            body: ['data' => []],
+            status: 200,
+        ),
+    ]);
+
+    $this->postJson('/probe/relay', [
+        'method' => 'GET',
+        'url' => 'http://localhost/api/users',
+        'headers' => ['Accept' => 'application/json'],
+        'body' => '',
+        'auth' => ['type' => 'none'],
+    ])->assertOk()->assertJsonPath('data.status', 200);
+});
+```
+
+## References
+
+- Service Provider: `Isaacjuwon\Probe\ProbeServiceProvider`
+- Configuration: `config/probe.php`
+- Web Dashboard Route: `/probe` (`probe.index`)
+- API Endpoints:
+  - `GET /probe/endpoints` (`probe.endpoints`)
+  - `POST /probe/relay` (`probe.relay`)
+  - `POST /probe/requests` (`probe.requests.save`)
+- Gate Ability: `viewProbe`
 
 ## Anti-patterns
 
-- do not document package internals here; keep the skill focused on adoption in Laravel apps
+- Do not run database migrations for Probe (Probe requires 0 migrations).
+- Do not instantiate internal transports or actions with `new`; resolve via Laravel service container or contracts (`Isaacjuwon\Probe\Contracts\RelayTransport`, etc.).
+- Do not make unmocked network HTTP calls in CI tests; always use `Http::fake()`.
+- Do not remove secret masking from saved request persistence.
