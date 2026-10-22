@@ -57,7 +57,7 @@
   const activeUserId = $derived.by(() => {
     const tab = tabsState.active;
     if (!tab) return null;
-    if (tab.authType === 'act_as_user' && tab.authPayload && 'user_id' in tab.authPayload) {
+    if (tab.authType === 'sanctum_act_as' && tab.authPayload && 'user_id' in tab.authPayload) {
       return String(tab.authPayload.user_id);
     }
     return null;
@@ -80,7 +80,7 @@
 
   function impersonateUser(user: AppUser): void {
     if (!tabsState.active) return;
-    tabsState.active.authType = 'act_as_user';
+    tabsState.active.authType = 'sanctum_act_as';
     tabsState.active.authPayload = {
       user_id: user.id,
     };

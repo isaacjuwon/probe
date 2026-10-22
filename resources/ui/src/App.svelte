@@ -81,7 +81,7 @@
 
   const activePersona = $derived.by(() => {
     const tab = tabsState.active;
-    if (tab && tab.authType === 'act_as_user' && tab.authPayload && 'user_id' in tab.authPayload) {
+    if (tab && tab.authType === 'sanctum_act_as' && tab.authPayload && 'user_id' in tab.authPayload) {
       return String(tab.authPayload.user_id);
     }
     return null;
