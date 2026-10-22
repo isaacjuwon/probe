@@ -9,12 +9,34 @@
   import TabBar from '$lib/features/tabs/TabBar.svelte';
   import EndpointTree from '$lib/features/endpoints/EndpointTree.svelte';
   import HistoryList from '$lib/features/history/HistoryList.svelte';
+  import CollectionsPanel from '$lib/features/collections/CollectionsPanel.svelte';
+  import TelemetryPanel from '$lib/features/telemetry/TelemetryPanel.svelte';
+  import ImpersonatePanel from '$lib/features/impersonate/ImpersonatePanel.svelte';
+  import EnvironmentPanel from '$lib/features/environment/EnvironmentPanel.svelte';
+  import DocsExportPanel from '$lib/features/docs/DocsExportPanel.svelte';
+  import PrimarySidebar, { type ActiveTool } from '$lib/components/PrimarySidebar.svelte';
+  import ShortcutsModal from '$lib/components/ShortcutsModal.svelte';
   import RequestPanel from '$lib/features/request/RequestPanel.svelte';
   import ResponseViewer from '$lib/features/response/ResponseViewer.svelte';
   import CommandPalette from '$lib/features/palette/CommandPalette.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Badge } from '$lib/components/ui/badge';
-  import { Sun, Moon, Search, PanelLeft, Radio, Plus, FolderTree, Clock } from '@lucide/svelte';
+  import {
+    Sun,
+    Moon,
+    Search,
+    PanelLeft,
+    Radio,
+    Plus,
+    X,
+    FolderTree,
+    Clock,
+    Bookmark,
+    Activity,
+    Users,
+    Sliders,
+    BookOpen,
+  } from '@lucide/svelte';
   import { generateId, interpolateUrl } from '$lib/utils';
   import { extractShareFromSearch } from '$lib/services/share-url.service';
 
@@ -25,24 +47,71 @@
   const historyState = new HistoryState(services.historyRepository);
 
   let commandPaletteOpen = $state(false);
-  let sidebarCollapsed = $state(false);
-  let sidebarView = $state<'routes' | 'history'>('routes');
+  let shortcutsOpen = $state(false);
 
-  let sidebarWidth = $state<number>(
-    typeof window !== 'undefined'
-      ? parseInt(localStorage.getItem('probe_sidebar_width') ?? '280', 10)
-      : 280
+  // Primary Sidebar & Secondary Panel states
+  let activeTool = $state<ActiveTool>(
+    (typeof window !== 'undefined'
+      ? (localStorage.getItem('probe_active_tool') as ActiveTool)
+      : null) ?? 'endpoints'
   );
+
+  let isSecondaryPanelOpen = $state<boolean>(
+    typeof window !== 'undefined'
+      ? localStorage.getItem('probe_secondary_panel_open') !== 'false'
+      : true
+  );
+
+  let secondaryPanelWidth = $state<number>(
+    typeof window !== 'undefined'
+      ? parseInt(localStorage.getItem('probe_secondary_panel_width') ?? '290', 10)
+      : 290
+  );
+
   let requestRatio = $state<number>(
     typeof window !== 'undefined'
       ? parseFloat(localStorage.getItem('probe_request_ratio') ?? '50')
       : 50
   );
 
-  let isResizingSidebar = $state(false);
+  let isResizingSecondary = $state(false);
   let isResizingPanes = $state(false);
 
   const config = services.api.getConfig();
+
+  const activePersona = $derived.by(() => {
+    const tab = tabsState.active;
+    if (tab && tab.authType === 'act_as_user' && tab.authPayload && 'user_id' in tab.authPayload) {
+      return String(tab.authPayload.user_id);
+    }
+    return null;
+  });
+
+  const queriesCount = $derived(requestState.activeResult?.queries?.length ?? 0);
+  const hasException = $derived(
+    Boolean(requestState.activeResult?.exceptions && requestState.activeResult.exceptions.length > 0)
+  );
+
+  function handleSelectTool(tool: ActiveTool): void {
+    if (activeTool === tool && isSecondaryPanelOpen) {
+      // Toggle closed if clicking the currently open panel
+      isSecondaryPanelOpen = false;
+    } else {
+      activeTool = tool;
+      isSecondaryPanelOpen = true;
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('probe_active_tool', activeTool);
+      localStorage.setItem('probe_secondary_panel_open', String(isSecondaryPanelOpen));
+    }
+  }
+
+  function toggleSecondaryPanel(): void {
+    isSecondaryPanelOpen = !isSecondaryPanelOpen;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('probe_secondary_panel_open', String(isSecondaryPanelOpen));
+    }
+  }
 
   async function triggerSend(): Promise<void> {
     if (tabsState.active) {
@@ -85,20 +154,20 @@
     tab.isDirty = false;
   }
 
-  function startResizeSidebar(e: PointerEvent): void {
+  function startResizeSecondary(e: PointerEvent): void {
     e.preventDefault();
-    isResizingSidebar = true;
+    isResizingSecondary = true;
     const startX = e.clientX;
-    const startW = sidebarWidth;
+    const startW = secondaryPanelWidth;
 
     function onMove(ev: PointerEvent): void {
-      const newW = Math.min(500, Math.max(200, startW + (ev.clientX - startX)));
-      sidebarWidth = newW;
-      localStorage.setItem('probe_sidebar_width', String(newW));
+      const newW = Math.min(550, Math.max(220, startW + (ev.clientX - startX)));
+      secondaryPanelWidth = newW;
+      localStorage.setItem('probe_secondary_panel_width', String(newW));
     }
 
     function onUp(): void {
-      isResizingSidebar = false;
+      isResizingSecondary = false;
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     }
@@ -195,11 +264,9 @@
     services.commands.register({
       command: {
         id: 'toggle-sidebar',
-        title: 'Toggle Sidebar',
+        title: 'Toggle Explorer Panel',
         shortcut: '⌘B',
-        run: () => {
-          sidebarCollapsed = !sidebarCollapsed;
-        },
+        run: toggleSecondaryPanel,
       },
     });
 
@@ -228,7 +295,7 @@
         void triggerSend();
       } else if (e.key.toLowerCase() === 'b') {
         e.preventDefault();
-        sidebarCollapsed = !sidebarCollapsed;
+        toggleSecondaryPanel();
       } else if (e.key.toLowerCase() === 't') {
         e.preventDefault();
         tabsState.createDefaultTab();
@@ -260,9 +327,9 @@
       <Button
         variant="ghost"
         size="icon-sm"
-        onclick={() => (sidebarCollapsed = !sidebarCollapsed)}
+        onclick={toggleSecondaryPanel}
         class="h-8 w-8 text-muted-foreground hover:text-foreground"
-        title="Toggle sidebar (⌘B)"
+        title="Toggle Explorer Panel (⌘B)"
       >
         <PanelLeft class="h-4 w-4" />
       </Button>
@@ -308,59 +375,105 @@
     </div>
   </header>
 
-  <!-- Main Split Layout -->
+  <!-- Main Multi-Pane Layout -->
   <div class="flex-1 flex overflow-hidden">
-    <!-- Sidebar: Routes & History -->
-    {#if !sidebarCollapsed}
-      <aside style="width: {sidebarWidth}px;" class="shrink-0 h-full flex flex-col border-r border-border bg-card/20 select-none">
-        <!-- Sidebar Navigation switcher (Routes vs History) -->
-        <div class="p-2 border-b border-border flex items-center gap-1 bg-card/40">
-          <button
-            type="button"
-            onclick={() => (sidebarView = 'routes')}
-            class="flex-1 py-1 px-2 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors {sidebarView === 'routes'
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'}"
+    <!-- 1. Primary Sidebar (Activity Rail - Collapsible by default) -->
+    <PrimarySidebar
+      {activeTool}
+      onselectTool={handleSelectTool}
+      isSecondaryOpen={isSecondaryPanelOpen}
+      endpointsCount={endpointsState.endpoints.length}
+      historyCount={historyState.items.length}
+      savedCount={0}
+      {queriesCount}
+      {hasException}
+      {activePersona}
+      environment={config.environment}
+      onopenshortcuts={() => (shortcutsOpen = true)}
+      ontoggletheme={toggleMode}
+    />
+
+    <!-- 2. Secondary Panel (Explorer Panel - Converted from current sidebar) -->
+    {#if isSecondaryPanelOpen}
+      <aside
+        style="width: {secondaryPanelWidth}px;"
+        class="shrink-0 h-full flex flex-col border-r border-border bg-card/20 select-none overflow-hidden"
+      >
+        <!-- Secondary Panel Dynamic Header -->
+        <div class="h-9 px-3 border-b border-border/80 flex items-center justify-between bg-card/50">
+          <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {#if activeTool === 'endpoints'}
+              <FolderTree class="h-3.5 w-3.5 text-primary" />
+              <span>Endpoints Explorer</span>
+            {:else if activeTool === 'history'}
+              <Clock class="h-3.5 w-3.5 text-primary" />
+              <span>Relay History</span>
+            {:else if activeTool === 'collections'}
+              <Bookmark class="h-3.5 w-3.5 text-primary" />
+              <span>Collections</span>
+            {:else if activeTool === 'telemetry'}
+              <Activity class="h-3.5 w-3.5 text-primary" />
+              <span>Telemetry Profiler</span>
+            {:else if activeTool === 'impersonate'}
+              <Users class="h-3.5 w-3.5 text-primary" />
+              <span>Sanctum Users</span>
+            {:else if activeTool === 'environment'}
+              <Sliders class="h-3.5 w-3.5 text-primary" />
+              <span>Environment</span>
+            {:else if activeTool === 'docs'}
+              <BookOpen class="h-3.5 w-3.5 text-primary" />
+              <span>Docs & Export</span>
+            {/if}
+          </div>
+
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onclick={toggleSecondaryPanel}
+            class="h-6 w-6 text-muted-foreground hover:text-foreground"
+            title="Collapse panel (⌘B)"
           >
-            <FolderTree class="h-3.5 w-3.5" />
-            <span>Routes</span>
-          </button>
-          <button
-            type="button"
-            onclick={() => (sidebarView = 'history')}
-            class="flex-1 py-1 px-2 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors {sidebarView === 'history'
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'}"
-          >
-            <Clock class="h-3.5 w-3.5" />
-            <span>History ({historyState.items.length})</span>
-          </button>
+            <X class="h-3.5 w-3.5" />
+          </Button>
         </div>
 
+        <!-- Secondary Panel Body -->
         <div class="flex-1 min-h-0 overflow-hidden">
-          {#if sidebarView === 'routes'}
+          {#if activeTool === 'endpoints'}
             <EndpointTree {endpointsState} {tabsState} />
-          {:else}
+          {:else if activeTool === 'history'}
             <HistoryList {historyState} {tabsState} />
+          {:else if activeTool === 'collections'}
+            <CollectionsPanel {tabsState} {services} />
+          {:else if activeTool === 'telemetry'}
+            <TelemetryPanel {requestState} {historyState} />
+          {:else if activeTool === 'impersonate'}
+            <ImpersonatePanel {tabsState} {services} />
+          {:else if activeTool === 'environment'}
+            <EnvironmentPanel {config} />
+          {:else if activeTool === 'docs'}
+            <DocsExportPanel {endpointsState} />
           {/if}
         </div>
       </aside>
 
-      <!-- Sidebar resize handle -->
+      <!-- Secondary Panel resize handle -->
       <div
         role="separator"
         aria-orientation="vertical"
-        onpointerdown={startResizeSidebar}
+        onpointerdown={startResizeSecondary}
         ondblclick={() => {
-          sidebarWidth = 280;
-          localStorage.setItem('probe_sidebar_width', '280');
+          secondaryPanelWidth = 290;
+          localStorage.setItem('probe_secondary_panel_width', '290');
         }}
-        class="w-1.5 hover:w-2 -ml-1 hover:bg-primary/50 cursor-col-resize z-20 transition-all select-none {isResizingSidebar ? 'bg-primary w-2' : 'bg-transparent'}"
-        title="Drag to resize sidebar (double-click to reset)"
+        class="w-1.5 hover:w-2 -ml-1 hover:bg-primary/50 cursor-col-resize z-20 transition-all select-none {isResizingSecondary
+          ? 'bg-primary w-2'
+          : 'bg-transparent'}"
+        title="Drag to resize panel (double-click to reset)"
       ></div>
     {/if}
 
-    <!-- Center Workspace -->
+    <!-- 3. Center Workspace: Request & Response Panes -->
     <main class="flex-1 flex flex-col h-full overflow-hidden bg-background min-w-0">
       <TabBar {tabsState} />
 
@@ -385,7 +498,9 @@
               requestRatio = 50;
               localStorage.setItem('probe_request_ratio', '50');
             }}
-            class="w-1.5 hover:w-2.5 -ml-1 -mr-1 hover:bg-primary/50 cursor-col-resize z-20 transition-all select-none bg-border/60 {isResizingPanes ? 'bg-primary w-2.5' : ''}"
+            class="w-1.5 hover:w-2.5 -ml-1 -mr-1 hover:bg-primary/50 cursor-col-resize z-20 transition-all select-none bg-border/60 {isResizingPanes
+              ? 'bg-primary w-2.5'
+              : ''}"
             title="Drag to adjust Request / Response ratio (double-click to reset to 50%)"
           ></div>
 
@@ -413,3 +528,4 @@
 </div>
 
 <CommandPalette bind:open={commandPaletteOpen} commandRegistry={services.commands} />
+<ShortcutsModal open={shortcutsOpen} onclose={() => (shortcutsOpen = false)} />
