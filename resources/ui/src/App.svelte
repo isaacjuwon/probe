@@ -89,9 +89,11 @@
     return null;
   });
 
-  const queriesCount = $derived(requestState.activeResult?.queries?.length ?? 0);
+  const activeResult = $derived(tabsState.active?.lastResult ?? requestState.activeResult);
+  const queriesCount = $derived(activeResult?.queries?.length ?? 0);
+  const cookiesCount = $derived(activeResult?.cookies?.length ?? 0);
   const hasException = $derived(
-    Boolean(requestState.activeResult?.exceptions && requestState.activeResult.exceptions.length > 0)
+    Boolean(activeResult?.exceptions && activeResult.exceptions.length > 0)
   );
 
   function handleSelectTool(tool: ActiveTool): void {
@@ -388,7 +390,7 @@
       historyCount={historyState.items.length}
       savedCount={0}
       {queriesCount}
-      cookiesCount={requestState.activeResult?.cookies?.length ?? 0}
+      {cookiesCount}
       {hasException}
       {activePersona}
       environment={config.environment}
@@ -452,7 +454,7 @@
           {:else if activeTool === 'collections'}
             <CollectionsPanel {tabsState} {services} />
           {:else if activeTool === 'telemetry'}
-            <TelemetryPanel {requestState} {historyState} />
+            <TelemetryPanel {requestState} {historyState} {tabsState} />
           {:else if activeTool === 'impersonate'}
             <ImpersonatePanel {tabsState} {services} />
           {:else if activeTool === 'cookies'}

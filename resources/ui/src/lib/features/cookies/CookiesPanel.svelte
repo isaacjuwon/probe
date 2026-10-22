@@ -28,7 +28,8 @@
   let copiedName = $state<string | null>(null);
 
   const cookies = $derived.by<CapturedCookie[]>(() => {
-    return requestState.activeResult?.cookies ?? [];
+    const activeResult = tabsState.active?.lastResult ?? requestState.activeResult;
+    return activeResult?.cookies ?? [];
   });
 
   const filteredCookies = $derived.by(() => {

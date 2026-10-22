@@ -319,6 +319,13 @@
               Headers ({Object.keys(result.headers).length})
             </TabsTrigger>
             <TabsTrigger
+              value="queries"
+              class="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-9 px-1 text-xs gap-1.5"
+            >
+              <Database class="h-3.5 w-3.5 text-primary" />
+              Queries ({result.queries.length})
+            </TabsTrigger>
+            <TabsTrigger
               value="cookies"
               class="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-9 px-1 text-xs gap-1.5"
             >
@@ -332,15 +339,6 @@
               >
                 <Radio class="h-3 w-3 text-cyan-400" />
                 Stream Events ({sseEvents().length})
-              </TabsTrigger>
-            {/if}
-            {#if result.queries.length > 0}
-              <TabsTrigger
-                value="queries"
-                class="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-9 px-1 text-xs gap-1.5"
-              >
-                <Database class="h-3 w-3" />
-                Queries ({result.queries.length})
               </TabsTrigger>
             {/if}
             {#if result.dumps.length > 0}
@@ -506,21 +504,29 @@
             </TabsContent>
           {/if}
 
-          {#if result.queries.length > 0}
-            <TabsContent value="queries" class="m-0 space-y-2">
+          <TabsContent value="queries" class="m-0 space-y-2">
+            {#if result.queries.length === 0}
+              <div class="p-8 text-center text-xs text-muted-foreground space-y-2">
+                <Database class="h-8 w-8 mx-auto opacity-40 text-primary" />
+                <p class="font-medium text-foreground">No database queries executed</p>
+                <p class="text-[11px] text-muted-foreground/80 max-w-sm mx-auto">
+                  This endpoint did not execute any SQL queries. Endpoints that query the database (e.g. <code>GET /api/v1/products</code> or <code>GET /admin/metrics</code>) will stream their query profiler here!
+                </p>
+              </div>
+            {:else}
               {#each result.queries as query}
                 <div class="p-2.5 rounded-md border border-border bg-card/40 text-xs font-mono space-y-1">
                   <div class="flex items-center justify-between text-muted-foreground text-[11px]">
-                    <span>{query.connection ?? 'default'}</span>
+                    <span class="font-semibold text-primary">{query.connection ?? 'default'}</span>
                     {#if query.time}
-                      <span>{query.time} ms</span>
+                      <span class="font-semibold text-emerald-400">{query.time} ms</span>
                     {/if}
                   </div>
                   <div class="text-foreground select-all break-all">{query.sql}</div>
                 </div>
               {/each}
-            </TabsContent>
-          {/if}
+            {/if}
+          </TabsContent>
 
           {#if result.dumps.length > 0}
             <TabsContent value="dumps" class="m-0 space-y-3">

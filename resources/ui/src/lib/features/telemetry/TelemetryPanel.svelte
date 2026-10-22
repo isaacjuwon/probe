@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { RequestState } from '$lib/features/request/request.state.svelte';
   import type { HistoryState } from '$lib/features/history/history.state.svelte';
+  import type { TabsState } from '$lib/features/tabs/tabs.state.svelte';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
@@ -19,9 +20,10 @@
   export interface Props {
     readonly requestState: RequestState;
     readonly historyState: HistoryState;
+    readonly tabsState?: TabsState;
   }
 
-  const { requestState, historyState }: Props = $props();
+  const { requestState, historyState, tabsState }: Props = $props();
 
   let searchQuery = $state('');
   let slowOnly = $state(false);
@@ -39,7 +41,7 @@
     const list: FlatQuery[] = [];
 
     // Latest active result queries
-    const activeResult = requestState.activeResult;
+    const activeResult = tabsState?.active?.lastResult ?? requestState.activeResult;
     if (activeResult && activeResult.queries) {
       for (const q of activeResult.queries) {
         list.push({

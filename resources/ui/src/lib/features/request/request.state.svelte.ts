@@ -12,6 +12,7 @@ export type RequestStatus = 'idle' | 'sending' | 'success' | 'error' | 'aborted'
 export class RequestState {
   status = $state<RequestStatus>('idle');
   error = $state<string | null>(null);
+  activeResult = $state<RelayResult | null>(null);
   activeController: AbortController | null = null;
 
   constructor(private readonly client: RelayClient) {}
@@ -52,6 +53,7 @@ export class RequestState {
       });
 
       this.status = 'success';
+      this.activeResult = result;
       tab.lastResult = result;
       return result;
     } catch (err: unknown) {
