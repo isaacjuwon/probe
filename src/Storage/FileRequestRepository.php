@@ -123,13 +123,22 @@ final class FileRequestRepository implements RequestRepository
             }
         }
 
-        if (isset($data['auth_payload']) && is_array(value: $data['auth_payload'])) {
-            if (isset($data['auth_payload']['token'])) {
-                $data['auth_payload']['token'] = '********';
+        $authKeys = ['auth_payload', 'authPayload'];
+        foreach ($authKeys as $authKey) {
+            if (isset($data[$authKey]) && is_array(value: $data[$authKey])) {
+                foreach ($data[$authKey] as $key => $val) {
+                    if (in_array(needle: strtolower(string: (string) $key), haystack: ['token', 'password', 'secret', 'key', 'value'], strict: true)) {
+                        $data[$authKey][$key] = '********';
+                    }
+                }
             }
+        }
 
-            if (isset($data['auth_payload']['password'])) {
-                $data['auth_payload']['password'] = '********';
+        if (isset($data['body']) && is_array(value: $data['body'])) {
+            foreach ($data['body'] as $key => $val) {
+                if (in_array(needle: strtolower(string: (string) $key), haystack: ['password', 'token', 'secret', 'api_key'], strict: true)) {
+                    $data['body'][$key] = '********';
+                }
             }
         }
 

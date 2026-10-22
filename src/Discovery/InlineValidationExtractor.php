@@ -47,7 +47,7 @@ final class InlineValidationExtractor
                 ),
             );
 
-            if (preg_match(pattern: '/->validate\(\s*\[(?P<rules>.*?)\]\s*\)/s', subject: $body, matches: $matches)) {
+            if (preg_match(pattern: '/->validate\(\s*(?:rules:\s*)?\[(?P<rules>.*?)\]\s*\)/s', subject: $body, matches: $matches)) {
                 return $this->parseRulesString(rulesBlock: $matches['rules']);
             }
         } catch (Throwable) {

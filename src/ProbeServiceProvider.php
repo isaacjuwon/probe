@@ -72,7 +72,7 @@ final class ProbeServiceProvider extends ServiceProvider
                 /** @var list<string> $allowed */
                 $allowed = config(
                     key: 'probe.allowed_environments',
-                    default: ['local'],
+                    default: ['local', 'testing'],
                 );
 
                 return in_array(

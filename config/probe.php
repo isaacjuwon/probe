@@ -6,7 +6,7 @@ return [
     'enabled' => env(key: 'PROBE_ENABLED', default: true),
     'path' => 'probe',
     'middleware' => ['web'],
-    'allowed_environments' => ['local'],
+    'allowed_environments' => ['local', 'testing'],
     'allowed_hosts' => [],
     'transport' => 'http',
     'sources' => ['router', 'scribe'],
