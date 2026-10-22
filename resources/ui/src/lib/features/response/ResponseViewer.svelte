@@ -9,6 +9,7 @@
   import { Skeleton } from '$lib/components/ui/skeleton';
   import { Copy, Check, Database, Bug, AlertTriangle, Sparkles, ShieldAlert, Radio } from '@lucide/svelte';
   import { generatePestTest } from '$lib/services/test-generator';
+  import { copyToClipboard } from '$lib/utils';
 
   export interface Props {
     readonly tab: RequestTab;
@@ -77,21 +78,25 @@
   async function copyResponse(): Promise<void> {
     const text = formattedBody();
     if (!text) return;
-    await navigator.clipboard.writeText(text);
-    copiedResponse = true;
-    setTimeout(() => {
-      copiedResponse = false;
-    }, 2000);
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      copiedResponse = true;
+      setTimeout(() => {
+        copiedResponse = false;
+      }, 2000);
+    }
   }
 
   async function copyPestTest(): Promise<void> {
     if (!tab.lastResult) return;
     const testCode = generatePestTest(tab, tab.lastResult);
-    await navigator.clipboard.writeText(testCode);
-    copiedPest = true;
-    setTimeout(() => {
-      copiedPest = false;
-    }, 2000);
+    const ok = await copyToClipboard(testCode);
+    if (ok) {
+      copiedPest = true;
+      setTimeout(() => {
+        copiedPest = false;
+      }, 2000);
+    }
   }
 </script>
 
