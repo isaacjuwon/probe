@@ -22,6 +22,7 @@ final readonly class RelayResult
         public array $dumps = [],
         public array $logs = [],
         public array $exceptions = [],
+        public bool $dryRun = false,
     ) {}
 
     /**
@@ -38,6 +39,7 @@ final readonly class RelayResult
             'dumps' => $this->dumps,
             'logs' => $this->logs,
             'exceptions' => $this->exceptions,
+            'dry_run' => $this->dryRun,
         ];
     }
 }

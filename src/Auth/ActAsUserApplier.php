@@ -46,15 +46,6 @@ final class ActAsUserApplier implements AuthApplier
         $headers = $request->headers;
         $headers['Authorization'] = 'Bearer '.$plainTextToken;
 
-        return new RelayRequest(
-            method: $request->method,
-            url: $request->url,
-            headers: $headers,
-            body: $request->body,
-            query: $request->query,
-            authType: $request->authType,
-            authPayload: $request->authPayload,
-            timeoutSeconds: $request->timeoutSeconds,
-        );
+        return $request->with(attributes: ['headers' => $headers]);
     }
 }

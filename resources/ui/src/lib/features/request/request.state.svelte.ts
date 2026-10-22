@@ -2,6 +2,7 @@ import type { RelayClient } from '$lib/api/relay.client';
 import type { RequestTab } from '$lib/domain/request-tab';
 import type { RelayResult } from '$lib/domain/relay';
 import { ProbeError } from '$lib/domain/errors';
+import { interpolateUrl } from '$lib/utils';
 
 export type RequestStatus = 'idle' | 'sending' | 'success' | 'error' | 'aborted';
 
@@ -39,12 +40,13 @@ export class RequestState {
       const result = await this.client.send({
         request: {
           method: tab.method,
-          url: tab.url,
+          url: interpolateUrl(tab.url, tab.pathParams),
           headers: tab.headers,
           body: parsedBody,
           query: tab.query,
           authType: tab.authType,
           authPayload: tab.authPayload,
+          dryRun: tab.dryRun ?? false,
         },
         signal: this.activeController.signal,
       });

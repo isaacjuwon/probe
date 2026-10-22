@@ -51,4 +51,22 @@ export function generateId(): string {
   });
 }
 
+export function extractPathParams(url: string): string[] {
+  const matches = url.match(/\{([a-zA-Z0-9_]+)\}/g);
+  if (!matches) return [];
+  return Array.from(new Set(matches.map((m) => m.slice(1, -1))));
+}
+
+export function interpolateUrl(url: string, pathParams?: Record<string, string>): string {
+  if (!pathParams) return url;
+  let resolved = url;
+  for (const [key, val] of Object.entries(pathParams)) {
+    if (val !== undefined && val.trim() !== '') {
+      resolved = resolved.replace(new RegExp(`\\{${key}\\}`, 'g'), encodeURIComponent(val.trim()));
+    }
+  }
+  return resolved;
+}
+
+
 

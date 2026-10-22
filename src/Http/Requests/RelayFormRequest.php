@@ -27,6 +27,7 @@ final class RelayFormRequest extends FormRequest
             'auth_type' => ['nullable', 'string'],
             'auth_payload' => ['nullable', 'array'],
             'timeout_seconds' => ['nullable', 'integer', 'min:1', 'max:120'],
+            'dry_run' => ['nullable', 'boolean'],
         ];
     }
 }

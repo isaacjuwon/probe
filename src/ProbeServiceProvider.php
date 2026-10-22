@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Isaacjuwon\Probe;
 
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -23,6 +24,7 @@ use Isaacjuwon\Probe\Contracts\RequestRepository;
 use Isaacjuwon\Probe\Enrichment\EnrichmentPipeline;
 use Isaacjuwon\Probe\Relay\HostGuard;
 use Isaacjuwon\Probe\Relay\HttpTransport;
+use Isaacjuwon\Probe\Relay\InProcessTransport;
 use Isaacjuwon\Probe\Relay\QueryCapturingTransport;
 use Isaacjuwon\Probe\Relay\TimedTransport;
 use Isaacjuwon\Probe\Storage\FileRequestRepository;
@@ -138,9 +140,18 @@ final class ProbeServiceProvider extends ServiceProvider
                 $guard = $app->make(abstract: HostGuard::class);
                 $collectors = $app->make(abstract: CollectorRegistry::class);
 
-                $httpTransport = new HttpTransport(hostGuard: $guard);
+                /** @var string $driver */
+                $driver = config(key: 'probe.transport', default: 'in_process');
+
+                $innerTransport = ($driver === 'http')
+                    ? new HttpTransport(hostGuard: $guard)
+                    : new InProcessTransport(
+                        kernel: $app->make(abstract: Kernel::class),
+                        hostGuard: $guard,
+                    );
+
                 $capturingTransport = new QueryCapturingTransport(
-                    transport: $httpTransport,
+                    transport: $innerTransport,
                     registry: $collectors,
                 );
 

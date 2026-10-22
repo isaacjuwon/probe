@@ -9,6 +9,7 @@ export interface RelayRequest {
   readonly authType?: AuthType;
   readonly authPayload?: Readonly<Record<string, unknown>>;
   readonly timeoutSeconds?: number;
+  readonly dryRun?: boolean;
 }
 
 export interface CapturedQuery {
@@ -35,4 +36,5 @@ export interface RelayResult {
   readonly dumps: readonly string[];
   readonly logs: readonly unknown[];
   readonly exceptions: readonly CapturedException[];
+  readonly dryRun?: boolean;
 }

@@ -39,7 +39,7 @@ final class ProbeDashboardController
                     'appName' => $appName,
                     'features' => [
                         'scribe' => $scribeEnabled !== false && $scribeEnabled !== 'false',
-                        'inProcessTransport' => $transport === 'in-process',
+                        'inProcessTransport' => $transport === 'in_process' || $transport === 'in-process',
                     ],
                 ],
             ],

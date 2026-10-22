@@ -24,6 +24,7 @@ export class RelayClient {
         auth_type: request.authType,
         auth_payload: request.authPayload,
         timeout_seconds: request.timeoutSeconds,
+        dry_run: request.dryRun,
       },
       signal,
     });

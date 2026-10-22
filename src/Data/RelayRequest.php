@@ -23,7 +23,26 @@ final readonly class RelayRequest
         public AuthType $authType = AuthType::None,
         public array $authPayload = [],
         public int $timeoutSeconds = 30,
+        public bool $dryRun = false,
     ) {}
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    public function with(array $attributes): self
+    {
+        return new self(
+            method: $attributes['method'] ?? $this->method,
+            url: $attributes['url'] ?? $this->url,
+            headers: $attributes['headers'] ?? $this->headers,
+            body: array_key_exists(key: 'body', array: $attributes) ? $attributes['body'] : $this->body,
+            query: $attributes['query'] ?? $this->query,
+            authType: $attributes['authType'] ?? $this->authType,
+            authPayload: $attributes['authPayload'] ?? $this->authPayload,
+            timeoutSeconds: $attributes['timeoutSeconds'] ?? $this->timeoutSeconds,
+            dryRun: $attributes['dryRun'] ?? $this->dryRun,
+        );
+    }
 
     /**
      * @return array<string, mixed>
@@ -39,6 +58,7 @@ final readonly class RelayRequest
             'auth_type' => $this->authType->value,
             'auth_payload' => $this->authPayload,
             'timeout_seconds' => $this->timeoutSeconds,
+            'dry_run' => $this->dryRun,
         ];
     }
 }

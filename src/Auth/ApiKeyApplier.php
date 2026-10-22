@@ -34,15 +34,9 @@ final class ApiKeyApplier implements AuthApplier
             $headers[$name] = $value;
         }
 
-        return new RelayRequest(
-            method: $request->method,
-            url: $request->url,
-            headers: $headers,
-            body: $request->body,
-            query: $query,
-            authType: $request->authType,
-            authPayload: $request->authPayload,
-            timeoutSeconds: $request->timeoutSeconds,
-        );
+        return $request->with(attributes: [
+            'headers' => $headers,
+            'query' => $query,
+        ]);
     }
 }

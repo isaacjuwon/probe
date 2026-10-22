@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { generateId } from './utils';
+import { describe, expect, it } from 'vitest';
+import { generateId, extractPathParams, interpolateUrl } from './utils';
 
 describe('generateId', () => {
   it('generates a valid UUID string format', () => {
@@ -48,5 +48,26 @@ describe('generateId', () => {
         Object.defineProperty(globalThis, 'crypto', originalDescriptor);
       }
     }
+  });
+
+  describe('extractPathParams', () => {
+    it('extracts param names from route URL', () => {
+      expect(extractPathParams('http://localhost/api/users/{id}')).toEqual(['id']);
+      expect(extractPathParams('http://localhost/api/teams/{team}/members/{user}')).toEqual(['team', 'user']);
+      expect(extractPathParams('http://localhost/api/posts')).toEqual([]);
+    });
+  });
+
+  describe('interpolateUrl', () => {
+    it('replaces path parameters with supplied values', () => {
+      expect(interpolateUrl('http://localhost/api/users/{id}', { id: '42' })).toBe('http://localhost/api/users/42');
+      expect(interpolateUrl('http://localhost/api/teams/{team}/members/{user}', { team: 'eng', user: 'alice' }))
+        .toBe('http://localhost/api/teams/eng/members/alice');
+    });
+
+    it('leaves unfilled path parameters intact if missing or empty', () => {
+      expect(interpolateUrl('http://localhost/api/users/{id}', { id: '' })).toBe('http://localhost/api/users/{id}');
+      expect(interpolateUrl('http://localhost/api/users/{id}')).toBe('http://localhost/api/users/{id}');
+    });
   });
 });

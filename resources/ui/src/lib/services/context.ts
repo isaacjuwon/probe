@@ -1,5 +1,6 @@
 import { getContext, setContext } from 'svelte';
 import { EndpointClient } from '$lib/api/endpoint.client';
+import { UsersClient } from '$lib/api/users.client';
 import { ProbeApi } from '$lib/api/probe.client';
 import { RelayClient } from '$lib/api/relay.client';
 import { StorageClient } from '$lib/api/storage.client';
@@ -13,6 +14,7 @@ const SERVICES_KEY = Symbol('PROBE_SERVICES');
 export interface ProbeServices {
   readonly api: ProbeApi;
   readonly endpoints: EndpointClient;
+  readonly users: UsersClient;
   readonly relay: RelayClient;
   readonly storage: StorageClient;
   readonly tabRepository: TabRepository;
@@ -23,6 +25,7 @@ export interface ProbeServices {
 export function createDefaultServices(): ProbeServices {
   const api = new ProbeApi();
   const endpoints = new EndpointClient(api);
+  const users = new UsersClient(api);
   const relay = new RelayClient(api);
   const storage = new StorageClient(api);
   const tabRepository = new IndexedDbTabRepository();
@@ -32,6 +35,7 @@ export function createDefaultServices(): ProbeServices {
   return {
     api,
     endpoints,
+    users,
     relay,
     storage,
     tabRepository,

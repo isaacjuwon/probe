@@ -35,6 +35,8 @@ final class RelayRequestBuilder
 
     private int $timeoutSeconds = 30;
 
+    private bool $dryRun = false;
+
     public function setMethod(HttpMethod|string $method): self
     {
         $this->method = is_string(value: $method)
@@ -99,6 +101,13 @@ final class RelayRequestBuilder
         return $this;
     }
 
+    public function setDryRun(bool $dryRun): self
+    {
+        $this->dryRun = $dryRun;
+
+        return $this;
+    }
+
     /**
      * @param  array<string, mixed>  $payload
      */
@@ -137,6 +146,10 @@ final class RelayRequestBuilder
             $this->setTimeout(seconds: (int) $payload['timeout_seconds']);
         }
 
+        if (isset($payload['dry_run'])) {
+            $this->setDryRun(dryRun: (bool) $payload['dry_run']);
+        }
+
         return $this;
     }
 
@@ -151,6 +164,7 @@ final class RelayRequestBuilder
             authType: $this->authType,
             authPayload: $this->authPayload,
             timeoutSeconds: $this->timeoutSeconds,
+            dryRun: $this->dryRun,
         );
     }
 }

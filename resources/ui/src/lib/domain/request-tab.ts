@@ -14,4 +14,6 @@ export interface RequestTab {
   lastResult?: RelayResult | null;
   isDirty?: boolean;
   endpoint?: Endpoint | null;
+  pathParams?: Record<string, string>;
+  dryRun?: boolean;
 }

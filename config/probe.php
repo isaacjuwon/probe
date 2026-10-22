@@ -8,7 +8,7 @@ return [
     'middleware' => ['web'],
     'allowed_environments' => ['local', 'testing'],
     'allowed_hosts' => [],
-    'transport' => 'http',
+    'transport' => env(key: 'PROBE_TRANSPORT', default: 'in_process'),
     'sources' => ['router', 'scribe'],
     'route_filters' => [
         'prefixes' => ['api'],
