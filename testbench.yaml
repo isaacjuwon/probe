@@ -1,6 +1,7 @@
 laravel: '@testbench'
 
 providers:
+  - Isaacjuwon\Probe\ProbeServiceProvider
   # - Workbench\App\Providers\WorkbenchServiceProvider
 
 migrations:

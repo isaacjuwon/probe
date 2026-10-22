@@ -32,3 +32,21 @@ it('registers probe artisan commands', function (): void {
     $this->artisan(command: 'probe:scribe-sync')
         ->assertSuccessful();
 });
+
+it('renders the probe dashboard with bootstrap configuration', function (): void {
+    $response = $this->get(uri: '/probe');
+
+    $response->assertOk()
+        ->assertSee(value: 'window.__PROBE__ =', escape: false)
+        ->assertSee(value: '<div id="app"', escape: false)
+        ->assertSee(value: 'vendor/probe/probe.js', escape: false)
+        ->assertSee(value: 'vendor/probe/probe.css', escape: false);
+});
+
+it('forbids dashboard access when viewProbe gate denies', function (): void {
+    Gate::define(ability: 'viewProbe', callback: fn (): bool => false);
+
+    $response = $this->get(uri: '/probe');
+
+    $response->assertForbidden();
+});
