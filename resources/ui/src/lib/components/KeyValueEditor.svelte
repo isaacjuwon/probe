@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
+  import * as Select from '$lib/components/ui/select';
   import { Trash2, Plus } from '@lucide/svelte';
   import { generateId } from '$lib/utils';
   import { generateValue, type GeneratorType } from '$lib/services/value-generator';
@@ -102,27 +103,28 @@
           oninput={(e: Event) => onValueChange(row, (e.target as HTMLInputElement).value)}
           class="h-8 text-xs font-mono"
         />
-        <select
-          title="Generate sample value"
-          class="h-8 text-[11px] bg-card/80 border border-border rounded px-1.5 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
-          onchange={(e) => {
-            const sel = e.target as HTMLSelectElement;
-            const type = sel.value as GeneratorType;
-            if (type) {
-              onValueChange(row, generateValue(type));
-              sel.value = '';
+        <Select.Root
+          type="single"
+          value=""
+          onValueChange={(val: string) => {
+            if (val) {
+              onValueChange(row, generateValue(val as GeneratorType));
             }
           }}
         >
-          <option value="" disabled selected>✨ Gen</option>
-          <option value="uuid">UUID</option>
-          <option value="timestamp">Timestamp</option>
-          <option value="date">Date</option>
-          <option value="email">Email</option>
-          <option value="name">Name</option>
-          <option value="number">Number</option>
-          <option value="boolean">Boolean</option>
-        </select>
+          <Select.Trigger size="sm" class="h-8 text-[11px] bg-card/80 border-border text-muted-foreground hover:text-foreground shrink-0">
+            <span class="flex items-center gap-1">✨ Gen</span>
+          </Select.Trigger>
+          <Select.Content class="z-50 bg-popover text-popover-foreground border border-border shadow-md min-w-[120px]">
+            <Select.Item value="uuid" label="UUID">UUID</Select.Item>
+            <Select.Item value="timestamp" label="Timestamp">Timestamp</Select.Item>
+            <Select.Item value="date" label="Date">Date</Select.Item>
+            <Select.Item value="email" label="Email">Email</Select.Item>
+            <Select.Item value="name" label="Name">Name</Select.Item>
+            <Select.Item value="number" label="Number">Number</Select.Item>
+            <Select.Item value="boolean" label="Boolean">Boolean</Select.Item>
+          </Select.Content>
+        </Select.Root>
         <Button
           variant="ghost"
           size="icon-sm"

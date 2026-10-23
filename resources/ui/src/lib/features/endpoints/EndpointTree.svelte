@@ -7,6 +7,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
+  import * as Select from '$lib/components/ui/select';
   import {
     Search,
     RotateCw,
@@ -95,32 +96,63 @@
     </div>
 
     <div class="flex items-center gap-1.5">
-      <select
-        aria-label="Filter API scope"
+      <Select.Root
+        type="single"
         value={endpointsState.apiScope}
-        onchange={(e: Event) => endpointsState.setApiScope((e.target as HTMLSelectElement).value)}
-        class="flex-1 h-7 px-2 rounded border border-border bg-background/60 text-[11px] font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer truncate"
+        onValueChange={(val: string) => {
+          if (val) endpointsState.setApiScope(val);
+        }}
       >
-        {#each endpointsState.availableScopes as scope}
-          <option value={scope.id}>{scope.label}</option>
-        {/each}
-      </select>
+        <Select.Trigger size="sm" class="flex-1 h-7 text-[11px] font-medium bg-background/60 border-border truncate">
+          <span class="truncate">
+            {endpointsState.availableScopes.find((s) => s.id === endpointsState.apiScope)?.label ?? 'All Endpoints'}
+          </span>
+        </Select.Trigger>
+        <Select.Content class="z-50 bg-popover text-popover-foreground border border-border shadow-md">
+          {#each endpointsState.availableScopes as scope}
+            <Select.Item value={scope.id} label={scope.label}>
+              <span class="text-xs">{scope.label}</span>
+            </Select.Item>
+          {/each}
+        </Select.Content>
+      </Select.Root>
 
       {#if endpointsState.versions.length > 0}
-        <select
-          aria-label="Filter API version"
+        <Select.Root
+          type="single"
           value={endpointsState.versionFilter}
-          onchange={(e: Event) => endpointsState.setVersionFilter((e.target as HTMLSelectElement).value)}
-          class="w-24 h-7 px-1.5 rounded border border-border bg-background/60 text-[11px] font-semibold text-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer shrink-0 font-mono"
+          onValueChange={(val: string) => {
+            if (val) endpointsState.setVersionFilter(val);
+          }}
         >
-          <option value="all">All Vers ({endpointsState.versionCounts.all})</option>
-          {#each endpointsState.versions as v}
-            <option value={v}>{v} ({endpointsState.versionCounts[v] ?? 0})</option>
-          {/each}
-          {#if (endpointsState.versionCounts.unversioned ?? 0) > 0}
-            <option value="unversioned">None ({endpointsState.versionCounts.unversioned})</option>
-          {/if}
-        </select>
+          <Select.Trigger size="sm" class="w-24 h-7 text-[11px] font-semibold text-primary font-mono bg-background/60 border-border shrink-0">
+            <span class="truncate">
+              {#if endpointsState.versionFilter === 'all'}
+                All ({endpointsState.versionCounts.all})
+              {:else if endpointsState.versionFilter === 'unversioned'}
+                None ({endpointsState.versionCounts.unversioned})
+              {:else}
+                {endpointsState.versionFilter} ({endpointsState.versionCounts[endpointsState.versionFilter] ?? 0})
+              {/if}
+            </span>
+          </Select.Trigger>
+          <Select.Content class="z-50 bg-popover text-popover-foreground border border-border shadow-md min-w-[140px]">
+            <Select.Item value="all" label="All Versions">
+              <span class="text-xs">All ({endpointsState.versionCounts.all})</span>
+            </Select.Item>
+            {#each endpointsState.versions as v}
+              <Select.Item value={v} label={v}>
+                <span class="font-mono text-xs">{v}</span>
+                <span class="text-xs text-muted-foreground ml-auto">({endpointsState.versionCounts[v] ?? 0})</span>
+              </Select.Item>
+            {/each}
+            {#if (endpointsState.versionCounts.unversioned ?? 0) > 0}
+              <Select.Item value="unversioned" label="Unversioned">
+                <span class="text-xs">None ({endpointsState.versionCounts.unversioned})</span>
+              </Select.Item>
+            {/if}
+          </Select.Content>
+        </Select.Root>
       {/if}
     </div>
 

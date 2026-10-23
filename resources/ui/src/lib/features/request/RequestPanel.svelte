@@ -5,6 +5,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
   import { Tabs, TabsList, TabsTrigger, TabsContent } from '$lib/components/ui/tabs';
+  import * as Select from '$lib/components/ui/select';
   import KeyValueEditor from '$lib/components/KeyValueEditor.svelte';
   import CodeEditor from '$lib/editors/CodeEditor.svelte';
   import {
@@ -47,6 +48,39 @@
   let availableUsers = $state<AppUser[]>([]);
   let usersLoading = $state<boolean>(false);
   let copiedShare = $state<boolean>(false);
+
+  function getMethodColor(m: string): string {
+    switch (m.toUpperCase()) {
+      case 'GET': return 'text-emerald-400';
+      case 'POST': return 'text-amber-400';
+      case 'PUT':
+      case 'PATCH': return 'text-sky-400';
+      case 'DELETE': return 'text-rose-400';
+      default: return 'text-foreground';
+    }
+  }
+
+  function getAuthIcon(type: AuthType): string {
+    switch (type) {
+      case 'sanctum_act_as': return '🔒';
+      case 'api_key': return '🔑';
+      case 'basic': return '👤';
+      case 'bearer': return '🛡️';
+      case 'session': return '🍪';
+      default: return '🌐';
+    }
+  }
+
+  function getAuthLabel(type: AuthType): string {
+    switch (type) {
+      case 'sanctum_act_as': return 'Sanctum (Act As User)';
+      case 'api_key': return 'API Key';
+      case 'basic': return 'Basic Auth';
+      case 'bearer': return 'Bearer Token';
+      case 'session': return 'Session Cookie';
+      default: return 'None (Public)';
+    }
+  }
 
   const pathParamKeys = $derived(extractPathParams(tab.url));
   const resolvedUrl = $derived(interpolateUrl(tab.url, tab.pathParams));
@@ -206,15 +240,27 @@
   <!-- URL and Action Bar -->
   <div class="p-3 border-b border-border flex flex-col gap-2">
     <div class="flex items-center gap-2">
-      <select
+      <Select.Root
+        type="single"
         value={tab.method}
-        onchange={handleMethodChange}
-        class="h-9 px-2.5 rounded-md border border-border bg-card text-xs font-mono font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer shrink-0"
+        onValueChange={(val: string) => {
+          if (val) {
+            tab.method = val as HttpMethod;
+            tab.isDirty = true;
+          }
+        }}
       >
-        {#each methods as m}
-          <option value={m}>{m}</option>
-        {/each}
-      </select>
+        <Select.Trigger class="h-9 px-2.5 rounded-md border border-border bg-card text-xs font-mono font-bold shrink-0">
+          <span class={getMethodColor(tab.method)}>{tab.method}</span>
+        </Select.Trigger>
+        <Select.Content class="z-50 bg-popover text-popover-foreground border border-border shadow-md min-w-[110px]">
+          {#each methods as m}
+            <Select.Item value={m} label={m}>
+              <span class="font-mono font-bold text-xs {getMethodColor(m)}">{m}</span>
+            </Select.Item>
+          {/each}
+        </Select.Content>
+      </Select.Root>
 
       <div class="relative flex-1">
         <Input
@@ -390,19 +436,33 @@
               Requires Sanctum Auth:
             </span>
             {#if availableUsers.length > 0}
-              <select
+              <Select.Root
+                type="single"
                 value={(tab.authPayload.user_id as string) ?? ''}
-                onchange={(e) => {
-                  tab.authPayload.user_id = (e.target as HTMLSelectElement).value;
+                onValueChange={(val: string) => {
+                  tab.authPayload.user_id = val;
                   tab.isDirty = true;
                 }}
-                class="h-6 text-[11px] px-2 rounded border border-amber-500/40 bg-background/80 text-foreground flex-1 max-w-xs focus:outline-none focus:ring-1 focus:ring-amber-400"
               >
-                <option value="">-- Choose User to Impersonate --</option>
-                {#each availableUsers as user}
-                  <option value={user.id}>{user.name} ({user.email ?? `ID: ${user.id}`})</option>
-                {/each}
-              </select>
+                <Select.Trigger size="sm" class="h-6 text-[11px] px-2 rounded border border-amber-500/40 bg-background/80 text-foreground flex-1 max-w-xs">
+                  <span class="truncate">
+                    {#if tab.authPayload.user_id}
+                      {@const u = availableUsers.find((usr) => String(usr.id) === String(tab.authPayload.user_id))}
+                      {u ? `${u.name} (${u.email ?? u.id})` : `User #${tab.authPayload.user_id}`}
+                    {:else}
+                      -- Choose User to Impersonate --
+                    {/if}
+                  </span>
+                </Select.Trigger>
+                <Select.Content class="z-50 bg-popover text-popover-foreground border border-border shadow-lg min-w-[220px]">
+                  {#each availableUsers as user}
+                    <Select.Item value={String(user.id)} label={user.name}>
+                      <span class="text-xs font-medium">{user.name}</span>
+                      <span class="text-[11px] text-muted-foreground ml-auto">({user.email ?? `ID: ${user.id}`})</span>
+                    </Select.Item>
+                  {/each}
+                </Select.Content>
+              </Select.Root>
             {:else}
               <input
                 type="text"
@@ -591,26 +651,27 @@
                     }}
                     class="h-8 font-mono text-xs"
                   />
-                  <select
-                    title="Generate sample value"
-                    class="h-8 text-[11px] bg-card/80 border border-border rounded px-1.5 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
-                    onchange={(e) => {
-                      const sel = e.target as HTMLSelectElement;
-                      const type = sel.value as GeneratorType;
-                      if (type) {
+                  <Select.Root
+                    type="single"
+                    value=""
+                    onValueChange={(val: string) => {
+                      if (val) {
                         if (!tab.pathParams) tab.pathParams = {};
-                        tab.pathParams[key] = generateValue(type);
+                        tab.pathParams[key] = generateValue(val as GeneratorType);
                         tab.isDirty = true;
-                        sel.value = '';
                       }
                     }}
                   >
-                    <option value="" disabled selected>✨ Gen</option>
-                    <option value="uuid">UUID</option>
-                    <option value="timestamp">Timestamp</option>
-                    <option value="number">Number</option>
-                    <option value="name">Name</option>
-                  </select>
+                    <Select.Trigger size="sm" class="h-8 text-[11px] bg-card/80 border-border text-muted-foreground hover:text-foreground shrink-0">
+                      <span class="flex items-center gap-1">✨ Gen</span>
+                    </Select.Trigger>
+                    <Select.Content class="z-50 bg-popover text-popover-foreground border border-border shadow-md min-w-[120px]">
+                      <Select.Item value="uuid" label="UUID">UUID</Select.Item>
+                      <Select.Item value="timestamp" label="Timestamp">Timestamp</Select.Item>
+                      <Select.Item value="number" label="Number">Number</Select.Item>
+                      <Select.Item value="name" label="Name">Name</Select.Item>
+                    </Select.Content>
+                  </Select.Root>
                 </div>
               {/each}
             </div>
@@ -643,16 +704,40 @@
               <label for="auth-type-select" class="block text-xs font-medium text-muted-foreground mb-1"
                 >Authentication Type</label
               >
-              <select
-                id="auth-type-select"
+              <Select.Root
+                type="single"
                 value={tab.authType}
-                onchange={handleAuthTypeChange}
-                class="w-full h-8 px-2 rounded-md border border-border bg-card text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                onValueChange={(val: string) => {
+                  if (val) {
+                    tab.authType = val as AuthType;
+                    if (tab.authType === 'api_key' && !tab.authPayload.name) {
+                      tab.authPayload.name = 'X-API-Key';
+                      if (tab.authPayload.value === undefined) tab.authPayload.value = '';
+                    }
+                    tab.isDirty = true;
+                    if (tab.authType === 'sanctum_act_as') {
+                      void loadUsers();
+                    }
+                  }
+                }}
               >
-                {#each authTypes as type}
-                  <option value={type}>{type.toUpperCase().replace(/_/g, ' ')}</option>
-                {/each}
-              </select>
+                <Select.Trigger id="auth-type-select" class="w-full h-8 px-2 rounded-md border border-border bg-card text-xs text-foreground">
+                  <div class="flex items-center gap-2">
+                    <span>{getAuthIcon(tab.authType)}</span>
+                    <span>{getAuthLabel(tab.authType)}</span>
+                  </div>
+                </Select.Trigger>
+                <Select.Content class="z-50 bg-popover text-popover-foreground border border-border shadow-md min-w-[200px]">
+                  {#each authTypes as type}
+                    <Select.Item value={type} label={getAuthLabel(type)}>
+                      <div class="flex items-center gap-2">
+                        <span>{getAuthIcon(type)}</span>
+                        <span>{getAuthLabel(type)}</span>
+                      </div>
+                    </Select.Item>
+                  {/each}
+                </Select.Content>
+              </Select.Root>
             </div>
 
             {#if tab.authType === 'sanctum_act_as'}
@@ -670,22 +755,33 @@
                   </button>
                 </div>
                 {#if availableUsers.length > 0}
-                  <select
-                    id="act-as-user-select"
+                  <Select.Root
+                    type="single"
                     value={(tab.authPayload.user_id as string) ?? ''}
-                    onchange={(e) => {
-                      tab.authPayload.user_id = (e.target as HTMLSelectElement).value;
+                    onValueChange={(val: string) => {
+                      tab.authPayload.user_id = val;
                       tab.isDirty = true;
                     }}
-                    class="w-full h-8 px-2 rounded-md border border-border bg-card text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                   >
-                    <option value="">-- Choose Application User --</option>
-                    {#each availableUsers as user}
-                      <option value={user.id}>
-                        {user.name} ({user.email ?? `ID: ${user.id}`})
-                      </option>
-                    {/each}
-                  </select>
+                    <Select.Trigger id="act-as-user-select" class="w-full h-8 px-2 rounded-md border border-border bg-card text-xs text-foreground">
+                      <span class="truncate">
+                        {#if tab.authPayload.user_id}
+                          {@const u = availableUsers.find((usr) => String(usr.id) === String(tab.authPayload.user_id))}
+                          {u ? `${u.name} (${u.email ?? u.id})` : `User #${tab.authPayload.user_id}`}
+                        {:else}
+                          -- Choose Application User --
+                        {/if}
+                      </span>
+                    </Select.Trigger>
+                    <Select.Content class="z-50 bg-popover text-popover-foreground border border-border shadow-lg min-w-[240px]">
+                      {#each availableUsers as user}
+                        <Select.Item value={String(user.id)} label={user.name}>
+                          <span class="text-xs font-medium">{user.name}</span>
+                          <span class="text-xs text-muted-foreground ml-auto">({user.email ?? `ID: ${user.id}`})</span>
+                        </Select.Item>
+                      {/each}
+                    </Select.Content>
+                  </Select.Root>
                 {:else}
                   <Input
                     id="act-as-user-select"

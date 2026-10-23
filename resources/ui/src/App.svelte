@@ -22,6 +22,7 @@
   import CommandPalette from '$lib/features/palette/CommandPalette.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Badge } from '$lib/components/ui/badge';
+  import * as Select from '$lib/components/ui/select';
   import {
     Sun,
     Moon,
@@ -39,7 +40,6 @@
     BookOpen,
     Cookie,
     GitBranch,
-    ChevronDown,
   } from '@lucide/svelte';
   import { generateId, interpolateUrl } from '$lib/utils';
   import { extractShareFromSearch } from '$lib/services/share-url.service';
@@ -349,30 +349,53 @@
         {config.environment}
       </Badge>
 
-      <!-- API Version Switcher (Nimbus-style Top Switcher) -->
+      <!-- API Version Switcher (Nimbus-style Top Switcher with shadcn Select) -->
       {#if endpointsState.versions.length > 0}
         <div class="h-4 w-[1px] bg-border mx-1"></div>
-        <div class="relative flex items-center">
-          <GitBranch class="absolute left-2.5 h-3.5 w-3.5 {endpointsState.versionFilter !== 'all' ? 'text-primary' : 'text-muted-foreground'} pointer-events-none" />
-          <select
-            aria-label="Active API Version"
-            value={endpointsState.versionFilter}
-            onchange={(e: Event) => endpointsState.setVersionFilter((e.target as HTMLSelectElement).value)}
-            class="h-7 pl-7 pr-6 rounded-md border text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-colors font-mono appearance-none {endpointsState.versionFilter !== 'all'
+        <Select.Root
+          type="single"
+          value={endpointsState.versionFilter}
+          onValueChange={(val: string) => {
+            if (val) endpointsState.setVersionFilter(val);
+          }}
+        >
+          <Select.Trigger
+            size="sm"
+            class="h-7 px-2 gap-1.5 font-mono text-xs font-semibold border {endpointsState.versionFilter !== 'all'
               ? 'bg-primary/10 border-primary/40 text-primary hover:bg-primary/15'
               : 'bg-background/80 border-border text-foreground hover:bg-accent/40'}"
             title="Filter active API Version"
           >
-            <option value="all">All Versions ({endpointsState.versionCounts.all})</option>
+            <GitBranch class="h-3.5 w-3.5 shrink-0 {endpointsState.versionFilter !== 'all' ? 'text-primary' : 'text-muted-foreground'}" />
+            <span class="truncate">
+              {#if endpointsState.versionFilter === 'all'}
+                All Versions ({endpointsState.versionCounts.all})
+              {:else if endpointsState.versionFilter === 'unversioned'}
+                Unversioned ({endpointsState.versionCounts.unversioned})
+              {:else}
+                {endpointsState.versionFilter.toUpperCase()} ({endpointsState.versionCounts[endpointsState.versionFilter] ?? 0})
+              {/if}
+            </span>
+          </Select.Trigger>
+          <Select.Content class="z-50 bg-popover text-popover-foreground border border-border shadow-xl min-w-[180px]">
+            <Select.Item value="all" label="All Versions">
+              <span class="font-medium">All Versions</span>
+              <span class="text-xs text-muted-foreground ml-auto">({endpointsState.versionCounts.all})</span>
+            </Select.Item>
             {#each endpointsState.versions as v}
-              <option value={v}>{v.toUpperCase()} ({endpointsState.versionCounts[v] ?? 0} endpoints)</option>
+              <Select.Item value={v} label={v.toUpperCase()}>
+                <span class="font-mono font-medium">{v.toUpperCase()}</span>
+                <span class="text-xs text-muted-foreground ml-auto">({endpointsState.versionCounts[v] ?? 0} endpoints)</span>
+              </Select.Item>
             {/each}
             {#if (endpointsState.versionCounts.unversioned ?? 0) > 0}
-              <option value="unversioned">Unversioned ({endpointsState.versionCounts.unversioned})</option>
+              <Select.Item value="unversioned" label="Unversioned">
+                <span class="font-medium">Unversioned</span>
+                <span class="text-xs text-muted-foreground ml-auto">({endpointsState.versionCounts.unversioned})</span>
+              </Select.Item>
             {/if}
-          </select>
-          <ChevronDown class="absolute right-2 h-3 w-3 text-muted-foreground pointer-events-none" />
-        </div>
+          </Select.Content>
+        </Select.Root>
       {/if}
     </div>
 
