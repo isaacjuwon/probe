@@ -118,7 +118,7 @@
       </div>
       <div class="p-2 rounded-md bg-background/60 border border-border/50">
         <div class="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Slow (>50ms)</div>
-        <div class="text-sm font-bold font-mono {slowQueriesCount > 0 ? 'text-amber-500' : 'text-emerald-500'}">
+        <div class="text-sm font-bold font-mono {slowQueriesCount > 0 ? 'text-amber-600 dark:text-amber-500' : 'text-emerald-600 dark:text-emerald-500'}">
           {slowQueriesCount}
         </div>
       </div>
@@ -172,8 +172,8 @@
 
               <div class="flex items-center gap-1.5">
                 <span class="font-mono text-[10px] font-semibold px-1.5 py-0.5 rounded {query.time >= 50
-                  ? 'bg-amber-500/10 text-amber-500 border border-amber-500/30'
-                  : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30'}">
+                  ? 'bg-amber-500/10 text-amber-700 dark:text-amber-500 border border-amber-600/30 dark:border-amber-500/30'
+                  : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-500 border border-emerald-600/30 dark:border-emerald-500/30'}">
                   {query.time}ms
                 </span>
 

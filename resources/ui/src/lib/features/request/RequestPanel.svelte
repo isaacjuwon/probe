@@ -51,11 +51,11 @@
 
   function getMethodColor(m: string): string {
     switch (m.toUpperCase()) {
-      case 'GET': return 'text-emerald-400';
-      case 'POST': return 'text-amber-400';
+      case 'GET': return 'text-emerald-700 dark:text-emerald-400';
+      case 'POST': return 'text-amber-700 dark:text-amber-400';
       case 'PUT':
-      case 'PATCH': return 'text-sky-400';
-      case 'DELETE': return 'text-rose-400';
+      case 'PATCH': return 'text-sky-700 dark:text-sky-400';
+      case 'DELETE': return 'text-rose-700 dark:text-rose-400';
       default: return 'text-foreground';
     }
   }
@@ -495,8 +495,8 @@
       {:else}
         <div class="flex items-center justify-between gap-2 px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-xs">
           <div class="flex items-center gap-2 min-w-0">
-            <UserCheck class="h-3 w-3 text-emerald-400 shrink-0" />
-            <span class="text-[11px] text-emerald-300">
+            <UserCheck class="h-3 w-3 text-emerald-700 dark:text-emerald-400 shrink-0" />
+            <span class="text-[11px] text-emerald-800 dark:text-emerald-300">
               Sanctum Act As: <strong class="font-medium">User #{tab.authPayload.user_id}</strong>
               {#if activeUserName}
                 ({activeUserName})

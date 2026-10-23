@@ -233,7 +233,7 @@
         <StatusPill status={result.status} durationMs={result.durationMs} />
         {#if result.dryRun}
           <span
-            class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+            class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-600/30 dark:border-emerald-500/30"
             title="Request executed in an isolated database transaction and was rolled back"
           >
             DRY RUN (ROLLED BACK)
@@ -250,8 +250,8 @@
           title="Generate and copy an automated Pest PHP feature test for this request"
         >
           {#if copiedPest}
-            <Check class="h-3.5 w-3.5 text-emerald-400" />
-            <span class="text-emerald-400 font-medium">Copied Test!</span>
+            <Check class="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span class="text-emerald-700 dark:text-emerald-400 font-medium">Copied Test!</span>
           {:else}
             <Sparkles class="h-3.5 w-3.5 text-primary" />
             <span>Copy as Pest Test</span>
@@ -266,7 +266,7 @@
           title="Copy response payload"
         >
           {#if copiedResponse}
-            <Check class="h-3.5 w-3.5 text-emerald-400" />
+            <Check class="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>Copied</span>
           {:else}
             <Copy class="h-3.5 w-3.5" />
@@ -282,8 +282,8 @@
           title="Download response payload as a file"
         >
           {#if downloadedResponse}
-            <Check class="h-3.5 w-3.5 text-emerald-400" />
-            <span class="text-emerald-400 font-medium">Downloaded</span>
+            <Check class="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span class="text-emerald-700 dark:text-emerald-400 font-medium">Downloaded</span>
           {:else}
             <Download class="h-3.5 w-3.5" />
             <span>Download</span>
@@ -409,7 +409,7 @@
             {:else}
               <div class="text-xs text-muted-foreground flex items-center justify-between">
                 <span>Decrypted and inspected response cookies ({(result.cookies ?? []).length}):</span>
-                <span class="text-[11px] text-emerald-400 font-mono font-medium">APP_KEY Decryption Active</span>
+                <span class="text-[11px] text-emerald-700 dark:text-emerald-400 font-mono font-medium">APP_KEY Decryption Active</span>
               </div>
               <div class="space-y-2.5">
                 {#each (result.cookies ?? []) as cookie}
@@ -418,7 +418,7 @@
                       <div class="flex items-center gap-2">
                         <span class="font-mono text-xs font-semibold text-primary">{cookie.name}</span>
                         {#if cookie.is_encrypted}
-                          <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                          <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-600/30 dark:border-emerald-500/30 flex items-center gap-1">
                             <Lock class="h-2.5 w-2.5" />
                             Decrypted
                           </span>
@@ -438,7 +438,7 @@
                           title="Copy decrypted value"
                         >
                           {#if copiedCookieKey === cookie.name}
-                            <Check class="h-3 w-3 text-emerald-400" />
+                            <Check class="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                             <span class="text-[10px]">Copied</span>
                           {:else}
                             <Copy class="h-3 w-3" />
@@ -519,7 +519,7 @@
                   <div class="flex items-center justify-between text-muted-foreground text-[11px]">
                     <span class="font-semibold text-primary">{query.connection ?? 'default'}</span>
                     {#if query.time}
-                      <span class="font-semibold text-emerald-400">{query.time} ms</span>
+                      <span class="font-semibold text-emerald-700 dark:text-emerald-400">{query.time} ms</span>
                     {/if}
                   </div>
                   <div class="text-foreground select-all break-all">{query.sql}</div>

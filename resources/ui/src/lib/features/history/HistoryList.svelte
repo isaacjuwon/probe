@@ -98,10 +98,10 @@
                 <MethodBadge method={item.method} />
                 <span
                   class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold {item.status < 300
-                    ? 'text-emerald-400 bg-emerald-500/10'
+                    ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10'
                     : item.status < 400
-                      ? 'text-blue-400 bg-blue-500/10'
-                      : 'text-amber-400 bg-amber-500/10'}"
+                      ? 'text-blue-700 dark:text-blue-400 bg-blue-500/10'
+                      : 'text-amber-700 dark:text-amber-400 bg-amber-500/10'}"
                 >
                   {item.status}
                 </span>

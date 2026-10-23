@@ -112,7 +112,7 @@
         <Cookie class="h-3.5 w-3.5 text-amber-500" />
         Cookies Inspector
       </span>
-      <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-semibold flex items-center gap-1">
+      <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-semibold flex items-center gap-1">
         <Shield class="h-3 w-3" />
         APP_KEY Decryptor
       </span>
@@ -161,7 +161,7 @@
               <div class="flex items-center gap-1.5 min-w-0">
                 <span class="font-mono font-semibold text-primary truncate max-w-[130px]">{cookie.name}</span>
                 {#if cookie.is_encrypted}
-                  <span class="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-0.5 shrink-0">
+                  <span class="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-0.5 shrink-0">
                     <Lock class="h-2.5 w-2.5" />
                     Decrypted
                   </span>
@@ -181,7 +181,7 @@
                   title="Copy decrypted value"
                 >
                   {#if copiedName === cookie.name}
-                    <Check class="h-3 w-3 text-emerald-400" />
+                    <Check class="h-3 w-3 text-emerald-700 dark:text-emerald-400" />
                   {:else}
                     <Copy class="h-3 w-3" />
                   {/if}
@@ -212,7 +212,7 @@
             <div class="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap pt-1 border-t border-border/30">
               <span>Path: <strong class="text-foreground font-mono">{cookie.path ?? '/'}</strong></span>
               {#if cookie.http_only}
-                <span class="text-emerald-400 font-medium">HttpOnly</span>
+                <span class="text-emerald-700 dark:text-emerald-400 font-medium">HttpOnly</span>
               {/if}
               {#if cookie.secure}
                 <span class="text-cyan-400 font-medium">Secure</span>
