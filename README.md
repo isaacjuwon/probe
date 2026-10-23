@@ -11,6 +11,14 @@
     <a href="https://packagist.org/packages/isaacjuwon/probe"><img src="https://img.shields.io/packagist/dt/isaacjuwon/probe.svg?style=flat-square" alt="Total Downloads"></a>
 </p>
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="art/probe-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="art/probe-light.png">
+    <img alt="Probe In-App REST Client" src="art/probe-dark.png" width="100%">
+  </picture>
+</p>
+
 ---
 
 **Probe** gives your Laravel application a fast, self-hosted in-browser REST client (similar to Postman or Insomnia) embedded directly inside your development environment.
