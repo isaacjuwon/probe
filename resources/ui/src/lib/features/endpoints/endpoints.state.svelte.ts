@@ -110,6 +110,10 @@ export class EndpointsState {
       if (savedGroupBy === 'resource' || savedGroupBy === 'controller' || savedGroupBy === 'version') {
         this.groupBy = savedGroupBy;
       }
+      const savedVersion = localStorage.getItem('probe_version_filter');
+      if (savedVersion) {
+        this.versionFilter = savedVersion;
+      }
       try {
         const savedCollapsed = localStorage.getItem('probe_collapsed_groups');
         if (savedCollapsed) {
@@ -150,6 +154,9 @@ export class EndpointsState {
 
   setVersionFilter(version: string): void {
     this.versionFilter = version;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('probe_version_filter', version);
+    }
   }
 
   get versions(): string[] {

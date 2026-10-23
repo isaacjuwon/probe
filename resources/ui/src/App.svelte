@@ -38,6 +38,8 @@
     Sliders,
     BookOpen,
     Cookie,
+    GitBranch,
+    ChevronDown,
   } from '@lucide/svelte';
   import { generateId, interpolateUrl } from '$lib/utils';
   import { extractShareFromSearch } from '$lib/services/share-url.service';
@@ -346,6 +348,32 @@
       <Badge variant="outline" class="text-[10px] uppercase font-mono px-1.5 py-0 border-primary/40 text-primary">
         {config.environment}
       </Badge>
+
+      <!-- API Version Switcher (Nimbus-style Top Switcher) -->
+      {#if endpointsState.versions.length > 0}
+        <div class="h-4 w-[1px] bg-border mx-1"></div>
+        <div class="relative flex items-center">
+          <GitBranch class="absolute left-2.5 h-3.5 w-3.5 {endpointsState.versionFilter !== 'all' ? 'text-primary' : 'text-muted-foreground'} pointer-events-none" />
+          <select
+            aria-label="Active API Version"
+            value={endpointsState.versionFilter}
+            onchange={(e: Event) => endpointsState.setVersionFilter((e.target as HTMLSelectElement).value)}
+            class="h-7 pl-7 pr-6 rounded-md border text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-colors font-mono appearance-none {endpointsState.versionFilter !== 'all'
+              ? 'bg-primary/10 border-primary/40 text-primary hover:bg-primary/15'
+              : 'bg-background/80 border-border text-foreground hover:bg-accent/40'}"
+            title="Filter active API Version"
+          >
+            <option value="all">All Versions ({endpointsState.versionCounts.all})</option>
+            {#each endpointsState.versions as v}
+              <option value={v}>{v.toUpperCase()} ({endpointsState.versionCounts[v] ?? 0} endpoints)</option>
+            {/each}
+            {#if (endpointsState.versionCounts.unversioned ?? 0) > 0}
+              <option value="unversioned">Unversioned ({endpointsState.versionCounts.unversioned})</option>
+            {/if}
+          </select>
+          <ChevronDown class="absolute right-2 h-3 w-3 text-muted-foreground pointer-events-none" />
+        </div>
+      {/if}
     </div>
 
     <!-- Quick action search / command trigger -->

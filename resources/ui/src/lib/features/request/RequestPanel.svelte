@@ -550,7 +550,7 @@
             value="auth"
             class="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-9 px-1 text-xs gap-1.5"
           >
-            Auth {tab.authType !== 'none' ? `(${tab.authType.replace(/_/g, ' ')})` : ''}
+            Auth
             {#if hasAuthWarning}
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" title="Authentication required"></span>
             {:else if tab.authType !== 'none'}

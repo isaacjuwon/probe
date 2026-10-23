@@ -202,48 +202,52 @@
         <button
           type="button"
           onclick={() => endpointsState.setAuthFilter('sanctum')}
-          class="px-2 py-0.5 rounded-full border text-[10px] font-semibold shrink-0 transition-colors flex items-center gap-1 {endpointsState.authFilter === 'sanctum'
+          title="Sanctum Auth ({endpointsState.authCounts.sanctum})"
+          class="px-1.5 py-0.5 rounded-full border text-[10px] font-semibold shrink-0 transition-colors flex items-center gap-1 {endpointsState.authFilter === 'sanctum'
             ? 'bg-amber-500 text-white border-amber-500'
             : 'border-border text-amber-500/80 hover:text-amber-500'}"
         >
-          <Lock class="h-2.5 w-2.5" />
-          <span>Sanctum ({endpointsState.authCounts.sanctum})</span>
+          <Lock class="h-3 w-3" />
+          <span>{endpointsState.authCounts.sanctum}</span>
         </button>
       {/if}
       {#if endpointsState.authCounts.api_key > 0}
         <button
           type="button"
           onclick={() => endpointsState.setAuthFilter('api_key')}
-          class="px-2 py-0.5 rounded-full border text-[10px] font-semibold shrink-0 transition-colors flex items-center gap-1 {endpointsState.authFilter === 'api_key'
+          title="API Key ({endpointsState.authCounts.api_key})"
+          class="px-1.5 py-0.5 rounded-full border text-[10px] font-semibold shrink-0 transition-colors flex items-center gap-1 {endpointsState.authFilter === 'api_key'
             ? 'bg-purple-500 text-white border-purple-500'
             : 'border-border text-purple-400 hover:text-purple-300'}"
         >
-          <Key class="h-2.5 w-2.5" />
-          <span>API Key ({endpointsState.authCounts.api_key})</span>
+          <Key class="h-3 w-3" />
+          <span>{endpointsState.authCounts.api_key}</span>
         </button>
       {/if}
       {#if endpointsState.authCounts.basic > 0}
         <button
           type="button"
           onclick={() => endpointsState.setAuthFilter('basic')}
-          class="px-2 py-0.5 rounded-full border text-[10px] font-semibold shrink-0 transition-colors flex items-center gap-1 {endpointsState.authFilter === 'basic'
+          title="Basic Auth ({endpointsState.authCounts.basic})"
+          class="px-1.5 py-0.5 rounded-full border text-[10px] font-semibold shrink-0 transition-colors flex items-center gap-1 {endpointsState.authFilter === 'basic'
             ? 'bg-indigo-500 text-white border-indigo-500'
             : 'border-border text-indigo-400 hover:text-indigo-300'}"
         >
-          <User class="h-2.5 w-2.5" />
-          <span>Basic ({endpointsState.authCounts.basic})</span>
+          <User class="h-3 w-3" />
+          <span>{endpointsState.authCounts.basic}</span>
         </button>
       {/if}
       {#if endpointsState.authCounts.public > 0}
         <button
           type="button"
           onclick={() => endpointsState.setAuthFilter('public')}
-          class="px-2 py-0.5 rounded-full border text-[10px] font-semibold shrink-0 transition-colors flex items-center gap-1 {endpointsState.authFilter === 'public'
+          title="Public Endpoints ({endpointsState.authCounts.public})"
+          class="px-1.5 py-0.5 rounded-full border text-[10px] font-semibold shrink-0 transition-colors flex items-center gap-1 {endpointsState.authFilter === 'public'
             ? 'bg-muted-foreground text-background border-muted-foreground'
             : 'border-border text-muted-foreground hover:text-foreground'}"
         >
-          <Globe class="h-2.5 w-2.5" />
-          <span>Public ({endpointsState.authCounts.public})</span>
+          <Globe class="h-3 w-3" />
+          <span>{endpointsState.authCounts.public}</span>
         </button>
       {/if}
     </div>
@@ -311,7 +315,7 @@
                             {endpoint.version}
                           </span>
                         {/if}
-                        <AuthBadge auth={endpoint.auth} compact={false} />
+                        <AuthBadge auth={endpoint.auth} />
                       </div>
                     </button>
                   {/each}
