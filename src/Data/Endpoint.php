@@ -27,6 +27,7 @@ final readonly class Endpoint
         public ?string $group = null,
         public ?string $description = null,
         public AuthType $auth = AuthType::None,
+        public ?string $version = null,
     ) {}
 
     /**
@@ -49,6 +50,7 @@ final readonly class Endpoint
             'group' => $this->group,
             'description' => $this->description,
             'auth' => $this->auth->value,
+            'version' => $this->version,
         ];
     }
 }

@@ -61,3 +61,37 @@ it('detects authentication requirements for routes', function (): void {
         ->and($keyEp?->auth)->toBe(expected: AuthType::ApiKey)
         ->and($basicEp?->auth)->toBe(expected: AuthType::Basic);
 });
+
+it('identifies API versions and resolves resource groups following standard versioning', function (): void {
+    Route::middleware('api')->prefix('api/v1')->group(function (): void {
+        Route::get(uri: '/orders', action: static fn (): array => ['orders' => []])->name(name: 'v1.orders.index');
+        Route::get(uri: '/products/{id}', action: static fn (): array => ['product' => 1])->name(name: 'v1.products.show');
+    });
+
+    Route::middleware('api')->prefix('api/v2')->group(function (): void {
+        Route::get(uri: '/analytics', action: static fn (): array => ['metrics' => []])->name(name: 'v2.analytics');
+    });
+
+    Route::middleware(['api', 'version:v3'])->get(uri: '/api/reports', action: static fn (): array => ['reports' => []]);
+
+    Route::middleware('api')->get(uri: '/api/2026-10-01/webhooks', action: static fn (): array => ['ok' => true]);
+
+    /** @var EndpointSource $source */
+    $source = app(abstract: EndpointSource::class);
+    $endpoints = $source->endpoints();
+
+    $v1Orders = $endpoints->first(callback: static fn (Endpoint $e): bool => $e->uri === 'api/v1/orders');
+    $v1Products = $endpoints->first(callback: static fn (Endpoint $e): bool => $e->uri === 'api/v1/products/{id}');
+    $v2Analytics = $endpoints->first(callback: static fn (Endpoint $e): bool => $e->uri === 'api/v2/analytics');
+    $v3Reports = $endpoints->first(callback: static fn (Endpoint $e): bool => $e->uri === 'api/reports');
+    $dateWebhook = $endpoints->first(callback: static fn (Endpoint $e): bool => $e->uri === 'api/2026-10-01/webhooks');
+
+    expect($v1Orders?->version)->toBe(expected: 'v1')
+        ->and($v1Orders?->group)->toBe(expected: 'Orders')
+        ->and($v1Products?->version)->toBe(expected: 'v1')
+        ->and($v1Products?->group)->toBe(expected: 'Products')
+        ->and($v2Analytics?->version)->toBe(expected: 'v2')
+        ->and($v2Analytics?->group)->toBe(expected: 'Analytics')
+        ->and($v3Reports?->version)->toBe(expected: 'v3')
+        ->and($dateWebhook?->version)->toBe(expected: '2026-10-01');
+});

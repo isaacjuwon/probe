@@ -231,8 +231,16 @@
             }
           }}
           placeholder="https://api.example.com/endpoint"
-          class="h-9 font-mono text-xs w-full bg-card/60"
+          class="h-9 font-mono text-xs w-full bg-card/60 {tab.endpoint?.version ? 'pr-14' : ''}"
         />
+        {#if tab.endpoint?.version}
+          <span
+            class="absolute right-2 top-2 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-primary/15 text-primary border border-primary/30 pointer-events-none select-none"
+            title="API Version: {tab.endpoint.version}"
+          >
+            {tab.endpoint.version}
+          </span>
+        {/if}
       </div>
 
       <!-- Dry Run toggle -->

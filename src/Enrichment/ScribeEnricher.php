@@ -69,6 +69,7 @@ final class ScribeEnricher implements Enricher
             group: $endpoint->group ?? $scribe->group,
             description: $scribe->description ?? $endpoint->description,
             auth: $endpoint->auth,
+            version: $endpoint->version ?? $scribe->version,
         );
     }
 }

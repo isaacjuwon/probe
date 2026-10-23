@@ -57,6 +57,9 @@ final class OpenApiImporter
 
                 $fields = $this->extractFields(operation: $operation);
                 $group = isset($operation['tags'][0]) ? (string) $operation['tags'][0] : null;
+                $version = preg_match(pattern: '/(?:\/|^)(v\d+(?:\.\d+)?(?:-[a-z0-9]+)?)(?:\/|$)/i', subject: (string) $uri, matches: $vMatches)
+                    ? strtolower(string: $vMatches[1])
+                    : (isset($spec['info']['version']) ? (string) $spec['info']['version'] : null);
 
                 $endpoints[] = new Endpoint(
                     method: $method,
@@ -66,6 +69,7 @@ final class OpenApiImporter
                     group: $group,
                     description: isset($operation['summary']) ? (string) $operation['summary'] : (isset($operation['description']) ? (string) $operation['description'] : null),
                     auth: isset($operation['security']) ? AuthType::Bearer : AuthType::None,
+                    version: $version,
                 );
             }
         }

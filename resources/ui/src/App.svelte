@@ -395,7 +395,6 @@
       {activePersona}
       environment={config.environment}
       onopenshortcuts={() => (shortcutsOpen = true)}
-      ontoggletheme={toggleMode}
     />
 
     <!-- 2. Secondary Panel (Explorer Panel - Converted from current sidebar) -->

@@ -129,6 +129,7 @@ final class RouterEndpointSource implements EndpointSource
         $uri = $route->uri();
         $routeMiddleware = array_values(array: $route->gatherMiddleware());
         $authType = $this->detectAuthType(route: $route, middleware: $routeMiddleware);
+        $version = $this->detectVersion(route: $route, uri: $uri, middleware: $routeMiddleware);
         $parameters = $this->extractRouteParameters(uri: $uri);
         $fields = $this->extractFields(route: $route);
 
@@ -143,9 +144,10 @@ final class RouterEndpointSource implements EndpointSource
             ],
             parameters: $parameters,
             fields: $fields,
-            group: $this->resolveGroup(uri: $uri),
+            group: $this->resolveGroup(uri: $uri, version: $version),
             description: null,
             auth: $authType,
+            version: $version,
         );
     }
 
@@ -230,6 +232,81 @@ final class RouterEndpointSource implements EndpointSource
     }
 
     /**
+     * Detect API version following standard REST and Laravel API versioning patterns:
+     * - URI path segment (/api/v1/..., /v2.0/..., /2026-10-01/...)
+     * - Route prefix ($route->getPrefix())
+     * - Route name prefix (v1.orders.index, api.v2.users)
+     * - Controller namespace (\Api\V1\UserController)
+     * - Route middleware (version:v1, api-version:v2)
+     * - Controller docblock (@version v1)
+     *
+     * @param  array<string>  $middleware
+     */
+    private function detectVersion(Route $route, string $uri, array $middleware): ?string
+    {
+        // 1. URI path segment (e.g. /api/v1/..., /v2.1/..., /v1-beta/...)
+        if (preg_match(pattern: '/(?:\/|^)(v\d+(?:\.\d+)?(?:-[a-z0-9]+)?)(?:\/|$)/i', subject: $uri, matches: $matches)) {
+            return strtolower(string: $matches[1]);
+        }
+
+        // Date-based URI version (e.g. /api/2026-10-01/...)
+        if (preg_match(pattern: '/(?:\/|^)(\d{4}-\d{2}-\d{2})(?:\/|$)/', subject: $uri, matches: $matches)) {
+            return $matches[1];
+        }
+
+        // 2. Route Prefix (e.g. v1, api/v2)
+        $prefix = $route->getPrefix();
+
+        if ($prefix !== null) {
+            if (preg_match(pattern: '/(?:\/|^)(v\d+(?:\.\d+)?(?:-[a-z0-9]+)?)(?:\/|$)/i', subject: $prefix, matches: $matches)) {
+                return strtolower(string: $matches[1]);
+            }
+
+            if (preg_match(pattern: '/(?:\/|^)(\d{4}-\d{2}-\d{2})(?:\/|$)/', subject: $prefix, matches: $matches)) {
+                return $matches[1];
+            }
+        }
+
+        // 3. Route Name Prefix (e.g. v1.orders.index, api.v2.users)
+        $routeName = $route->getName();
+
+        if ($routeName !== null && preg_match(pattern: '/(?:^|\.)(v\d+(?:\.\d+)?(?:-[a-z0-9]+)?)(?:\.|$)/i', subject: $routeName, matches: $matches)) {
+            return strtolower(string: $matches[1]);
+        }
+
+        // 4. Controller Action Namespace (e.g. App\Http\Controllers\Api\V1\UserController)
+        $action = $route->getActionName();
+
+        if (preg_match(pattern: '/(?:^|\\\\)v(\d+(?:\.\d+)?)(?:\\\\|$)/i', subject: $action, matches: $matches)) {
+            return 'v'.strtolower(string: $matches[1]);
+        }
+
+        // 5. Route Middleware (e.g. version:v1, api-version:v2, v1)
+        foreach ($middleware as $m) {
+            if (preg_match(pattern: '/(?:version|api-version|v)[:=]([a-z0-9.-]+)/i', subject: $m, matches: $matches)) {
+                $ver = strtolower(string: $matches[1]);
+
+                return str_starts_with(haystack: $ver, needle: 'v') ? $ver : 'v'.$ver;
+            }
+        }
+
+        // 6. Controller DocBlock @version
+        $reflection = $this->reflector->getReflection(action: $route->getAction(key: 'uses'));
+
+        if ($reflection !== null) {
+            $docComment = $reflection->getDocComment();
+
+            if (is_string(value: $docComment) && preg_match(pattern: '/@version\s+([a-z0-9.-]+)/i', subject: $docComment, matches: $matches)) {
+                $ver = strtolower(string: $matches[1]);
+
+                return str_starts_with(haystack: $ver, needle: 'v') ? $ver : 'v'.$ver;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function extractRouteParameters(string $uri): array
@@ -284,14 +361,35 @@ final class RouterEndpointSource implements EndpointSource
         return $fields;
     }
 
-    private function resolveGroup(string $uri): string
+    private function resolveGroup(string $uri, ?string $version = null): string
     {
-        $parts = explode(separator: '/', string: trim(string: $uri, characters: '/'));
+        $segments = array_values(array: array_filter(
+            array: explode(separator: '/', string: trim(string: $uri, characters: '/')),
+            callback: static fn (string $segment): bool => $segment !== '',
+        ));
 
-        if ($parts[0] === 'api' && isset($parts[1])) {
-            return ucfirst(string: $parts[1]);
+        if ($segments === []) {
+            return 'General';
         }
 
-        return ucfirst(string: $parts[0]);
+        if (strtolower(string: $segments[0]) === 'api') {
+            array_shift(array: $segments);
+        }
+
+        if ($segments === []) {
+            return 'Api';
+        }
+
+        $first = strtolower(string: $segments[0]);
+
+        if (($version !== null && $first === strtolower(string: $version)) || preg_match(pattern: '/^v\d+(\.\d+)?(-[a-z0-9]+)?$/i', subject: $first) || preg_match(pattern: '/^\d{4}-\d{2}-\d{2}$/', subject: $first)) {
+            array_shift(array: $segments);
+        }
+
+        if ($segments === []) {
+            return $version !== null ? ucfirst(string: $version) : 'General';
+        }
+
+        return ucfirst(string: $segments[0]);
     }
 }

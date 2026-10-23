@@ -2,7 +2,7 @@ import type { Endpoint } from '$lib/domain/endpoint';
 import type { EndpointClient } from '$lib/api/endpoint.client';
 import { extractControllerName, sortEndpointsCanonical } from './endpoint-sorter';
 
-export type GroupByMode = 'resource' | 'controller';
+export type GroupByMode = 'resource' | 'controller' | 'version';
 
 export class EndpointsState {
   endpoints = $state.raw<Endpoint[]>([]);
@@ -10,6 +10,7 @@ export class EndpointsState {
   selectedGroup = $state<string | null>(null);
   apiScope = $state<string>('all');
   authFilter = $state<string>('all');
+  versionFilter = $state<string>('all');
   groupBy = $state<GroupByMode>('resource');
   collapsedGroups = $state<string[]>([]);
   loading = $state<boolean>(false);
@@ -41,16 +42,26 @@ export class EndpointsState {
         (this.authFilter === 'basic' && e.auth === 'basic') ||
         e.auth === this.authFilter;
 
-      return matchesScope && matchesSearch && matchesGroup && matchesAuth;
+      const matchesVersion =
+        this.versionFilter === 'all' ||
+        (this.versionFilter === 'unversioned' && !e.version) ||
+        e.version === this.versionFilter;
+
+      return matchesScope && matchesSearch && matchesGroup && matchesAuth && matchesVersion;
     });
   }
 
   get groups(): string[] {
     const set = new Set<string>();
     for (const ep of this.filtered) {
-      const g = this.groupBy === 'controller'
-        ? extractControllerName(ep.action)
-        : (ep.group ?? 'General');
+      let g: string;
+      if (this.groupBy === 'controller') {
+        g = extractControllerName(ep.action);
+      } else if (this.groupBy === 'version') {
+        g = ep.version ? ep.version.toUpperCase() : 'Unversioned';
+      } else {
+        g = ep.group ?? 'General';
+      }
       set.add(g);
     }
     return Array.from(set).sort();
@@ -58,9 +69,14 @@ export class EndpointsState {
 
   getEndpointsForGroup(group: string): Endpoint[] {
     const matching = this.filtered.filter((e) => {
-      const g = this.groupBy === 'controller'
-        ? extractControllerName(e.action)
-        : (e.group ?? 'General');
+      let g: string;
+      if (this.groupBy === 'controller') {
+        g = extractControllerName(e.action);
+      } else if (this.groupBy === 'version') {
+        g = e.version ? e.version.toUpperCase() : 'Unversioned';
+      } else {
+        g = e.group ?? 'General';
+      }
       return g === group;
     });
     return sortEndpointsCanonical(matching);
@@ -91,7 +107,7 @@ export class EndpointsState {
   constructor(private readonly client: EndpointClient) {
     if (typeof localStorage !== 'undefined') {
       const savedGroupBy = localStorage.getItem('probe_group_by');
-      if (savedGroupBy === 'resource' || savedGroupBy === 'controller') {
+      if (savedGroupBy === 'resource' || savedGroupBy === 'controller' || savedGroupBy === 'version') {
         this.groupBy = savedGroupBy;
       }
       try {
@@ -130,6 +146,35 @@ export class EndpointsState {
 
   setAuthFilter(filter: string): void {
     this.authFilter = filter;
+  }
+
+  setVersionFilter(version: string): void {
+    this.versionFilter = version;
+  }
+
+  get versions(): string[] {
+    const set = new Set<string>();
+    for (const ep of this.endpoints) {
+      if (ep.version) {
+        set.add(ep.version);
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }
+
+  get versionCounts(): Record<string, number> {
+    const counts: Record<string, number> = { all: this.endpoints.length, unversioned: 0 };
+    for (const v of this.versions) {
+      counts[v] = 0;
+    }
+    for (const ep of this.endpoints) {
+      if (ep.version) {
+        counts[ep.version] = (counts[ep.version] ?? 0) + 1;
+      } else {
+        counts.unversioned = (counts.unversioned ?? 0) + 1;
+      }
+    }
+    return counts;
   }
 
   get authCounts(): { all: number; sanctum: number; api_key: number; basic: number; public: number } {

@@ -27,4 +27,5 @@ export interface Endpoint {
   readonly group?: string | null;
   readonly description?: string | null;
   readonly auth: AuthType;
+  readonly version?: string | null;
 }

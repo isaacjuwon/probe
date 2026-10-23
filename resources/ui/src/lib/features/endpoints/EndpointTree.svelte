@@ -17,6 +17,7 @@
     ChevronsUpDown,
     Layers,
     Cpu,
+    GitBranch,
     Lock,
     Key,
     User,
@@ -93,16 +94,35 @@
       </Button>
     </div>
 
-    <select
-      aria-label="Filter API scope"
-      value={endpointsState.apiScope}
-      onchange={(e: Event) => endpointsState.setApiScope((e.target as HTMLSelectElement).value)}
-      class="w-full h-7 px-2 rounded border border-border bg-background/60 text-[11px] font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-    >
-      {#each endpointsState.availableScopes as scope}
-        <option value={scope.id}>{scope.label}</option>
-      {/each}
-    </select>
+    <div class="flex items-center gap-1.5">
+      <select
+        aria-label="Filter API scope"
+        value={endpointsState.apiScope}
+        onchange={(e: Event) => endpointsState.setApiScope((e.target as HTMLSelectElement).value)}
+        class="flex-1 h-7 px-2 rounded border border-border bg-background/60 text-[11px] font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer truncate"
+      >
+        {#each endpointsState.availableScopes as scope}
+          <option value={scope.id}>{scope.label}</option>
+        {/each}
+      </select>
+
+      {#if endpointsState.versions.length > 0}
+        <select
+          aria-label="Filter API version"
+          value={endpointsState.versionFilter}
+          onchange={(e: Event) => endpointsState.setVersionFilter((e.target as HTMLSelectElement).value)}
+          class="w-24 h-7 px-1.5 rounded border border-border bg-background/60 text-[11px] font-semibold text-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer shrink-0 font-mono"
+        >
+          <option value="all">All Vers ({endpointsState.versionCounts.all})</option>
+          {#each endpointsState.versions as v}
+            <option value={v}>{v} ({endpointsState.versionCounts[v] ?? 0})</option>
+          {/each}
+          {#if (endpointsState.versionCounts.unversioned ?? 0) > 0}
+            <option value="unversioned">None ({endpointsState.versionCounts.unversioned})</option>
+          {/if}
+        </select>
+      {/if}
+    </div>
 
     <div class="flex items-center gap-1 p-0.5 rounded-md bg-muted/60 border border-border/60">
       <button
@@ -125,6 +145,18 @@
         <Cpu class="h-3 w-3" />
         <span>Controller</span>
       </button>
+      {#if endpointsState.versions.length > 0}
+        <button
+          type="button"
+          onclick={() => endpointsState.setGroupBy('version')}
+          class="flex-1 py-1 px-2 text-[10px] font-semibold rounded transition-colors flex items-center justify-center gap-1 {endpointsState.groupBy === 'version'
+            ? 'bg-background text-foreground shadow-xs'
+            : 'text-muted-foreground hover:text-foreground'}"
+        >
+          <GitBranch class="h-3 w-3" />
+          <span>Version</span>
+        </button>
+      {/if}
     </div>
 
     <div class="flex items-center gap-1.5">
@@ -270,7 +302,17 @@
                           {endpoint.uri}
                         </span>
                       </div>
-                      <AuthBadge auth={endpoint.auth} compact={false} />
+                      <div class="flex items-center gap-1 shrink-0">
+                        {#if endpoint.version && endpointsState.groupBy !== 'version'}
+                          <span
+                            class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20 shrink-0"
+                            title="API Version: {endpoint.version}"
+                          >
+                            {endpoint.version}
+                          </span>
+                        {/if}
+                        <AuthBadge auth={endpoint.auth} compact={false} />
+                      </div>
                     </button>
                   {/each}
                 </div>

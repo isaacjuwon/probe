@@ -78,6 +78,10 @@ final class PostmanImporter
 
             $uri = parse_url(url: (string) $rawUrl, component: PHP_URL_PATH) ?? (string) $rawUrl;
 
+            $version = preg_match(pattern: '/(?:\/|^)(v\d+(?:\.\d+)?(?:-[a-z0-9]+)?)(?:\/|$)/i', subject: (string) $uri, matches: $vMatches)
+                ? strtolower(string: $vMatches[1])
+                : null;
+
             $endpoints[] = new Endpoint(
                 method: $method,
                 uri: (string) $uri,
@@ -85,6 +89,7 @@ final class PostmanImporter
                 group: $group,
                 description: isset($request['description']) ? (string) $request['description'] : null,
                 auth: isset($request['auth']) ? AuthType::Bearer : AuthType::None,
+                version: $version,
             );
         }
     }
