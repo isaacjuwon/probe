@@ -86,15 +86,20 @@
   const resolvedUrl = $derived(interpolateUrl(tab.url, tab.pathParams));
   const hasValidationErrors = $derived(tab.lastResult?.status === 422);
 
-  let activeSubTab = $state<string>('params');
+  const selectedSubTabs = $state<Record<string, string>>({});
 
-  $effect(() => {
-    if (pathParamKeys.length > 0 && activeSubTab === 'params' && !tab.lastResult) {
-      activeSubTab = 'path';
-    } else if (pathParamKeys.length === 0 && activeSubTab === 'path') {
-      activeSubTab = 'params';
+  const activeSubTab = $derived.by(() => {
+    const userSelected = selectedSubTabs[tab.id];
+    if (userSelected) {
+      if (userSelected === 'path' && pathParamKeys.length === 0) return 'params';
+      return userSelected;
     }
+    return pathParamKeys.length > 0 && !tab.lastResult ? 'path' : 'params';
   });
+
+  function setSubTab(subTab: string): void {
+    selectedSubTabs[tab.id] = subTab;
+  }
 
   const requiredAuth = $derived(tab.endpoint?.auth ?? 'none');
   const hasAuthMismatch = $derived(
@@ -254,7 +259,7 @@
           <span class={getMethodColor(tab.method)}>{tab.method}</span>
         </Select.Trigger>
         <Select.Content class="z-50 bg-popover text-popover-foreground border border-border shadow-md min-w-[110px]">
-          {#each methods as m}
+          {#each methods as m (m)}
             <Select.Item value={m} label={m}>
               <span class="font-mono font-bold text-xs {getMethodColor(m)}">{m}</span>
             </Select.Item>
@@ -404,7 +409,7 @@
           </div>
           <button
             type="button"
-            onclick={() => { activeSubTab = 'auth'; }}
+            onclick={() => { setSubTab('auth'); }}
             class="text-[11px] text-purple-400 hover:underline shrink-0"
           >
             Options
@@ -420,7 +425,7 @@
           </div>
           <button
             type="button"
-            onclick={() => { activeSubTab = 'auth'; }}
+            onclick={() => { setSubTab('auth'); }}
             class="text-[10px] text-muted-foreground hover:text-foreground"
           >
             Edit
@@ -455,7 +460,7 @@
                   </span>
                 </Select.Trigger>
                 <Select.Content class="z-50 bg-popover text-popover-foreground border border-border shadow-lg min-w-[220px]">
-                  {#each availableUsers as user}
+                  {#each availableUsers as user (user.id)}
                     <Select.Item value={String(user.id)} label={user.name}>
                       <span class="text-xs font-medium">{user.name}</span>
                       <span class="text-[11px] text-muted-foreground ml-auto">({user.email ?? `ID: ${user.id}`})</span>
@@ -479,7 +484,7 @@
           <button
             type="button"
             onclick={() => {
-              activeSubTab = 'auth';
+              setSubTab('auth');
               void loadUsers();
             }}
             class="text-[11px] text-amber-400 hover:underline shrink-0"
@@ -501,7 +506,7 @@
           <button
             type="button"
             onclick={() => {
-              activeSubTab = 'auth';
+              setSubTab('auth');
               void loadUsers();
             }}
             class="text-[10px] text-muted-foreground hover:text-foreground"
@@ -531,7 +536,7 @@
           </div>
           <button
             type="button"
-            onclick={() => { activeSubTab = 'auth'; }}
+            onclick={() => { setSubTab('auth'); }}
             class="text-[11px] text-blue-400 hover:underline shrink-0"
           >
             Options
@@ -547,7 +552,7 @@
           </div>
           <button
             type="button"
-            onclick={() => { activeSubTab = 'auth'; }}
+            onclick={() => { setSubTab('auth'); }}
             class="text-[10px] text-muted-foreground hover:text-foreground"
           >
             Edit
@@ -566,7 +571,7 @@
           <Button
             variant="outline"
             size="sm"
-            onclick={() => { activeSubTab = 'auth'; }}
+            onclick={() => { setSubTab('auth'); }}
             class="h-6 px-2 text-[11px] font-medium border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/20 shrink-0"
           >
             Set Credentials
@@ -583,7 +588,13 @@
 
   <!-- Request Details Tabs -->
   <div class="flex-1 flex flex-col min-h-0">
-    <Tabs bind:value={activeSubTab} class="flex-1 flex flex-col min-h-0">
+    <Tabs
+      value={activeSubTab}
+      onValueChange={(val: string) => {
+        if (val) setSubTab(val);
+      }}
+      class="flex-1 flex flex-col min-h-0"
+    >
       <div class="px-3 border-b border-border bg-card/30">
         <TabsList class="h-9 bg-transparent p-0 gap-4">
           {#if pathParamKeys.length > 0}
@@ -636,7 +647,7 @@
               Route parameters found in URL. Enter values below to interpolate into request:
             </div>
             <div class="space-y-2 max-w-lg">
-              {#each pathParamKeys as key}
+              {#each pathParamKeys as key (key)}
                 <div class="flex items-center gap-2">
                   <div class="w-32 font-mono text-xs font-semibold text-primary shrink-0 truncate">
                     {`{${key}}`}
@@ -728,7 +739,7 @@
                   </div>
                 </Select.Trigger>
                 <Select.Content class="z-50 bg-popover text-popover-foreground border border-border shadow-md min-w-[200px]">
-                  {#each authTypes as type}
+                  {#each authTypes as type (type)}
                     <Select.Item value={type} label={getAuthLabel(type)}>
                       <div class="flex items-center gap-2">
                         <span>{getAuthIcon(type)}</span>
@@ -774,7 +785,7 @@
                       </span>
                     </Select.Trigger>
                     <Select.Content class="z-50 bg-popover text-popover-foreground border border-border shadow-lg min-w-[240px]">
-                      {#each availableUsers as user}
+                      {#each availableUsers as user (user.id)}
                         <Select.Item value={String(user.id)} label={user.name}>
                           <span class="text-xs font-medium">{user.name}</span>
                           <span class="text-xs text-muted-foreground ml-auto">({user.email ?? `ID: ${user.id}`})</span>

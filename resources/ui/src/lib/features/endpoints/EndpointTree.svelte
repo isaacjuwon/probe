@@ -109,7 +109,7 @@
           </span>
         </Select.Trigger>
         <Select.Content class="z-50 bg-popover text-popover-foreground border border-border shadow-md">
-          {#each endpointsState.availableScopes as scope}
+          {#each endpointsState.availableScopes as scope (scope.id)}
             <Select.Item value={scope.id} label={scope.label}>
               <span class="text-xs">{scope.label}</span>
             </Select.Item>
@@ -140,7 +140,7 @@
             <Select.Item value="all" label="All Versions">
               <span class="text-xs">All ({endpointsState.versionCounts.all})</span>
             </Select.Item>
-            {#each endpointsState.versions as v}
+            {#each endpointsState.versions as v (v)}
               <Select.Item value={v} label={v}>
                 <span class="font-mono text-xs">{v}</span>
                 <span class="text-xs text-muted-foreground ml-auto">({endpointsState.versionCounts[v] ?? 0})</span>
@@ -294,7 +294,7 @@
       <div class="p-4 text-center text-xs text-muted-foreground">No endpoints found</div>
     {:else}
       <div class="space-y-1.5">
-        {#each endpointsState.groups as group}
+        {#each endpointsState.groups as group (group)}
           {@const groupEndpoints = endpointsState.getEndpointsForGroup(group)}
           {#if groupEndpoints.length > 0}
             {@const isCollapsed = endpointsState.isGroupCollapsed(group)}
@@ -325,7 +325,7 @@
 
               {#if !isCollapsed}
                 <div class="pl-3.5 space-y-0.5 border-l border-border/40 ml-3.5 py-0.5">
-                  {#each groupEndpoints as endpoint}
+                  {#each groupEndpoints as endpoint (`${endpoint.method}:${endpoint.uri}`)}
                     <button
                       type="button"
                       onclick={() => openEndpointInTab(endpoint)}

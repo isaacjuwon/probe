@@ -382,7 +382,7 @@
               <span class="font-medium">All Versions</span>
               <span class="text-xs text-muted-foreground ml-auto">({endpointsState.versionCounts.all})</span>
             </Select.Item>
-            {#each endpointsState.versions as v}
+            {#each endpointsState.versions as v (v)}
               <Select.Item value={v} label={v.toUpperCase()}>
                 <span class="font-mono font-medium">{v.toUpperCase()}</span>
                 <span class="text-xs text-muted-foreground ml-auto">({endpointsState.versionCounts[v] ?? 0} endpoints)</span>
