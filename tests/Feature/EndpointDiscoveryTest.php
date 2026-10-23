@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Isaacjuwon\Probe\Contracts\EndpointSource;
 use Isaacjuwon\Probe\Data\Endpoint;
+use Isaacjuwon\Probe\Enums\AuthType;
 use Isaacjuwon\Probe\Enums\HttpMethod;
 
 beforeEach(function (): void {
@@ -41,4 +42,22 @@ it('serves discovered endpoints via the http endpoint', function (): void {
     $data = $response->json();
     expect($data)->toBeArray()
         ->and(count(value: $data))->toBeGreaterThan(0);
+});
+
+it('detects authentication requirements for routes', function (): void {
+    Route::middleware(['api', 'auth:sanctum'])->get(uri: '/api/protected/sanctum', action: static fn (): array => ['ok' => true]);
+    Route::middleware(['api', 'api_key'])->get(uri: '/api/protected/key', action: static fn (): array => ['ok' => true]);
+    Route::middleware(['api', 'auth:basic'])->get(uri: '/api/protected/basic', action: static fn (): array => ['ok' => true]);
+
+    /** @var EndpointSource $source */
+    $source = app(abstract: EndpointSource::class);
+    $endpoints = $source->endpoints();
+
+    $sanctumEp = $endpoints->first(callback: static fn (Endpoint $e): bool => $e->uri === 'api/protected/sanctum');
+    $keyEp = $endpoints->first(callback: static fn (Endpoint $e): bool => $e->uri === 'api/protected/key');
+    $basicEp = $endpoints->first(callback: static fn (Endpoint $e): bool => $e->uri === 'api/protected/basic');
+
+    expect($sanctumEp?->auth)->toBe(expected: AuthType::SanctumActAs)
+        ->and($keyEp?->auth)->toBe(expected: AuthType::ApiKey)
+        ->and($basicEp?->auth)->toBe(expected: AuthType::Basic);
 });

@@ -3,6 +3,7 @@
   import type { EndpointsState } from '$lib/features/endpoints/endpoints.state.svelte';
   import type { TabsState } from '$lib/features/tabs/tabs.state.svelte';
   import MethodBadge from '$lib/components/MethodBadge.svelte';
+  import AuthBadge from '$lib/components/AuthBadge.svelte';
   import { Input } from '$lib/components/ui/input';
   import { Button } from '$lib/components/ui/button';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
@@ -16,6 +17,10 @@
     ChevronsUpDown,
     Layers,
     Cpu,
+    Lock,
+    Key,
+    User,
+    Globe,
   } from '@lucide/svelte';
   import { generateId, extractPathParams } from '$lib/utils';
 
@@ -43,6 +48,15 @@
       pathParams[param] = '';
     }
 
+    const initialAuthPayload: Record<string, unknown> = {};
+    if (endpoint.auth === 'api_key') {
+      initialAuthPayload.name = 'X-API-Key';
+      initialAuthPayload.value = '';
+    } else if (endpoint.auth === 'basic') {
+      initialAuthPayload.username = 'admin';
+      initialAuthPayload.password = '';
+    }
+
     tabsState.open({
       tab: {
         id: generateId(),
@@ -54,7 +68,7 @@
         pathParams,
         body: Object.keys(bodyObj).length > 0 ? JSON.stringify(bodyObj, null, 2) : '',
         authType: endpoint.auth,
-        authPayload: {},
+        authPayload: initialAuthPayload,
         lastResult: null,
         endpoint: plainEndpoint,
       },
@@ -140,6 +154,67 @@
         <ChevronsUpDown class="h-3.5 w-3.5" />
       </Button>
     </div>
+
+    <!-- Auth Type Filter Pills -->
+    <div class="flex items-center gap-1 overflow-x-auto pb-0.5 text-[10px] no-scrollbar">
+      <button
+        type="button"
+        onclick={() => endpointsState.setAuthFilter('all')}
+        class="px-2 py-0.5 rounded-full border text-[10px] font-semibold shrink-0 transition-colors {endpointsState.authFilter === 'all'
+          ? 'bg-primary text-primary-foreground border-primary'
+          : 'border-border text-muted-foreground hover:text-foreground'}"
+      >
+        All ({endpointsState.authCounts.all})
+      </button>
+      {#if endpointsState.authCounts.sanctum > 0}
+        <button
+          type="button"
+          onclick={() => endpointsState.setAuthFilter('sanctum')}
+          class="px-2 py-0.5 rounded-full border text-[10px] font-semibold shrink-0 transition-colors flex items-center gap-1 {endpointsState.authFilter === 'sanctum'
+            ? 'bg-amber-500 text-white border-amber-500'
+            : 'border-border text-amber-500/80 hover:text-amber-500'}"
+        >
+          <Lock class="h-2.5 w-2.5" />
+          <span>Sanctum ({endpointsState.authCounts.sanctum})</span>
+        </button>
+      {/if}
+      {#if endpointsState.authCounts.api_key > 0}
+        <button
+          type="button"
+          onclick={() => endpointsState.setAuthFilter('api_key')}
+          class="px-2 py-0.5 rounded-full border text-[10px] font-semibold shrink-0 transition-colors flex items-center gap-1 {endpointsState.authFilter === 'api_key'
+            ? 'bg-purple-500 text-white border-purple-500'
+            : 'border-border text-purple-400 hover:text-purple-300'}"
+        >
+          <Key class="h-2.5 w-2.5" />
+          <span>API Key ({endpointsState.authCounts.api_key})</span>
+        </button>
+      {/if}
+      {#if endpointsState.authCounts.basic > 0}
+        <button
+          type="button"
+          onclick={() => endpointsState.setAuthFilter('basic')}
+          class="px-2 py-0.5 rounded-full border text-[10px] font-semibold shrink-0 transition-colors flex items-center gap-1 {endpointsState.authFilter === 'basic'
+            ? 'bg-indigo-500 text-white border-indigo-500'
+            : 'border-border text-indigo-400 hover:text-indigo-300'}"
+        >
+          <User class="h-2.5 w-2.5" />
+          <span>Basic ({endpointsState.authCounts.basic})</span>
+        </button>
+      {/if}
+      {#if endpointsState.authCounts.public > 0}
+        <button
+          type="button"
+          onclick={() => endpointsState.setAuthFilter('public')}
+          class="px-2 py-0.5 rounded-full border text-[10px] font-semibold shrink-0 transition-colors flex items-center gap-1 {endpointsState.authFilter === 'public'
+            ? 'bg-muted-foreground text-background border-muted-foreground'
+            : 'border-border text-muted-foreground hover:text-foreground'}"
+        >
+          <Globe class="h-2.5 w-2.5" />
+          <span>Public ({endpointsState.authCounts.public})</span>
+        </button>
+      {/if}
+    </div>
   </div>
 
   <ScrollArea class="flex-1 p-2">
@@ -186,13 +261,16 @@
                     <button
                       type="button"
                       onclick={() => openEndpointInTab(endpoint)}
-                      class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left hover:bg-accent/60 transition-colors group text-xs"
+                      class="w-full flex items-center justify-between gap-1.5 px-2 py-1.5 rounded text-left hover:bg-accent/60 transition-colors group text-xs"
                       title={endpoint.name ? `${endpoint.name} (${endpoint.action ?? ''})` : endpoint.action ?? ''}
                     >
-                      <MethodBadge method={endpoint.method} />
-                      <span class="truncate font-mono text-[11px] text-foreground/90 group-hover:text-foreground">
-                        {endpoint.uri}
-                      </span>
+                      <div class="flex items-center gap-2 min-w-0 flex-1">
+                        <MethodBadge method={endpoint.method} />
+                        <span class="truncate font-mono text-[11px] text-foreground/90 group-hover:text-foreground">
+                          {endpoint.uri}
+                        </span>
+                      </div>
+                      <AuthBadge auth={endpoint.auth} compact={false} />
                     </button>
                   {/each}
                 </div>

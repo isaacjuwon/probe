@@ -7,7 +7,23 @@
   import { Tabs, TabsList, TabsTrigger, TabsContent } from '$lib/components/ui/tabs';
   import KeyValueEditor from '$lib/components/KeyValueEditor.svelte';
   import CodeEditor from '$lib/editors/CodeEditor.svelte';
-  import { Send, Square, Bookmark, ShieldAlert, Sparkles, UserCheck, Share2, Check, Cookie } from '@lucide/svelte';
+  import {
+    Send,
+    Square,
+    Bookmark,
+    ShieldAlert,
+    Sparkles,
+    UserCheck,
+    Share2,
+    Check,
+    Cookie,
+    Lock,
+    Key,
+    Globe,
+    User,
+    Shield,
+    AlertTriangle,
+  } from '@lucide/svelte';
   import { extractPathParams, interpolateUrl, copyToClipboard } from '$lib/utils';
   import { encodeRequestToShareUrl } from '$lib/services/share-url.service';
   import { generateValue, type GeneratorType } from '$lib/services/value-generator';
@@ -36,8 +52,86 @@
   const resolvedUrl = $derived(interpolateUrl(tab.url, tab.pathParams));
   const hasValidationErrors = $derived(tab.lastResult?.status === 422);
 
-  onMount(() => {
+  let activeSubTab = $state<string>('params');
+
+  $effect(() => {
+    if (pathParamKeys.length > 0 && activeSubTab === 'params' && !tab.lastResult) {
+      activeSubTab = 'path';
+    } else if (pathParamKeys.length === 0 && activeSubTab === 'path') {
+      activeSubTab = 'params';
+    }
+  });
+
+  const requiredAuth = $derived(tab.endpoint?.auth ?? 'none');
+  const hasAuthMismatch = $derived(
+    requiredAuth !== 'none' && tab.authType !== requiredAuth
+  );
+
+  const authMissing = $derived.by(() => {
     if (tab.authType === 'sanctum_act_as') {
+      return !tab.authPayload?.user_id;
+    }
+    if (tab.authType === 'api_key') {
+      return !tab.authPayload?.value;
+    }
+    if (tab.authType === 'bearer') {
+      return !tab.authPayload?.token;
+    }
+    if (tab.authType === 'basic') {
+      return !tab.authPayload?.username && !tab.authPayload?.password;
+    }
+    return false;
+  });
+
+  const hasAuthWarning = $derived(hasAuthMismatch || authMissing);
+
+  const activeUserName = $derived.by(() => {
+    if (tab.authType !== 'sanctum_act_as' || !tab.authPayload?.user_id) return null;
+    const u = availableUsers.find(
+      (user) => String(user.id) === String(tab.authPayload.user_id)
+    );
+    return u ? u.name : null;
+  });
+
+  const requiredAuthLabel = $derived.by(() => {
+    switch (requiredAuth) {
+      case 'sanctum_act_as':
+        return 'Sanctum';
+      case 'api_key':
+        return 'API Key';
+      case 'bearer':
+        return 'Bearer Token';
+      case 'basic':
+        return 'Basic Auth';
+      case 'session':
+        return 'Session';
+      default:
+        return 'None';
+    }
+  });
+
+  function applyRequiredAuth(): void {
+    if (!tab.endpoint || tab.endpoint.auth === 'none') return;
+    tab.authType = tab.endpoint.auth;
+    if (tab.endpoint.auth === 'api_key') {
+      tab.authPayload = {
+        name: (tab.authPayload.name as string) || 'X-API-Key',
+        value: (tab.authPayload.value as string) || '',
+      };
+    } else if (tab.endpoint.auth === 'basic') {
+      tab.authPayload = {
+        username: (tab.authPayload.username as string) || 'admin',
+        password: (tab.authPayload.password as string) || '',
+      };
+    }
+    tab.isDirty = true;
+    if (tab.authType === 'sanctum_act_as') {
+      void loadUsers();
+    }
+  }
+
+  onMount(() => {
+    if (tab.authType === 'sanctum_act_as' || tab.endpoint?.auth === 'sanctum_act_as') {
       void loadUsers();
     }
   });
@@ -66,6 +160,10 @@
 
   function handleAuthTypeChange(e: Event): void {
     tab.authType = (e.target as HTMLSelectElement).value as AuthType;
+    if (tab.authType === 'api_key' && !tab.authPayload.name) {
+      tab.authPayload.name = 'X-API-Key';
+      if (tab.authPayload.value === undefined) tab.authPayload.value = '';
+    }
     tab.isDirty = true;
     if (tab.authType === 'sanctum_act_as') {
       void loadUsers();
@@ -211,11 +309,213 @@
         <span class="truncate text-foreground/80">{resolvedUrl}</span>
       </div>
     {/if}
+
+    <!-- Auth Requirement / Status Indicator -->
+    {#if hasAuthMismatch}
+      <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-xs">
+        <div class="flex items-center gap-2 min-w-0">
+          <AlertTriangle class="h-3.5 w-3.5 text-amber-500 shrink-0" />
+          <span class="text-foreground/90 truncate">
+            Route expects <strong class="text-amber-400 font-semibold">{requiredAuthLabel}</strong>, but tab uses <span class="font-mono text-muted-foreground">{tab.authType}</span>
+          </span>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onclick={applyRequiredAuth}
+          class="h-6 px-2 text-[11px] font-medium border-amber-500/40 text-amber-300 hover:bg-amber-500/20 shrink-0"
+        >
+          Switch to {requiredAuthLabel}
+        </Button>
+      </div>
+    {:else if tab.authType === 'api_key'}
+      {#if !tab.authPayload.value}
+        <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-purple-500/10 border border-purple-500/30 text-xs">
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <Key class="h-3.5 w-3.5 text-purple-400 shrink-0" />
+            <span class="text-foreground/90 font-medium whitespace-nowrap">
+              Requires API Key ({tab.authPayload.name || 'X-API-Key'}):
+            </span>
+            <input
+              type="text"
+              placeholder="Enter API key value..."
+              value={(tab.authPayload.value as string) ?? ''}
+              oninput={(e) => {
+                tab.authPayload.value = (e.target as HTMLInputElement).value;
+                if (!tab.authPayload.name) tab.authPayload.name = 'X-API-Key';
+                tab.isDirty = true;
+              }}
+              class="h-6 text-[11px] font-mono px-2 rounded border border-purple-500/40 bg-background/80 text-foreground flex-1 max-w-xs focus:outline-none focus:ring-1 focus:ring-purple-400"
+            />
+          </div>
+          <button
+            type="button"
+            onclick={() => { activeSubTab = 'auth'; }}
+            class="text-[11px] text-purple-400 hover:underline shrink-0"
+          >
+            Options
+          </button>
+        </div>
+      {:else}
+        <div class="flex items-center justify-between gap-2 px-2.5 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-xs">
+          <div class="flex items-center gap-2 min-w-0">
+            <Key class="h-3 w-3 text-purple-400 shrink-0" />
+            <span class="text-[11px] text-purple-300">
+              API Key active: <strong class="font-mono">{tab.authPayload.name || 'X-API-Key'}</strong> = ••••••••
+            </span>
+          </div>
+          <button
+            type="button"
+            onclick={() => { activeSubTab = 'auth'; }}
+            class="text-[10px] text-muted-foreground hover:text-foreground"
+          >
+            Edit
+          </button>
+        </div>
+      {/if}
+    {:else if tab.authType === 'sanctum_act_as'}
+      {#if !tab.authPayload.user_id}
+        <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-xs">
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <Lock class="h-3.5 w-3.5 text-amber-500 shrink-0" />
+            <span class="text-foreground/90 font-medium whitespace-nowrap">
+              Requires Sanctum Auth:
+            </span>
+            {#if availableUsers.length > 0}
+              <select
+                value={(tab.authPayload.user_id as string) ?? ''}
+                onchange={(e) => {
+                  tab.authPayload.user_id = (e.target as HTMLSelectElement).value;
+                  tab.isDirty = true;
+                }}
+                class="h-6 text-[11px] px-2 rounded border border-amber-500/40 bg-background/80 text-foreground flex-1 max-w-xs focus:outline-none focus:ring-1 focus:ring-amber-400"
+              >
+                <option value="">-- Choose User to Impersonate --</option>
+                {#each availableUsers as user}
+                  <option value={user.id}>{user.name} ({user.email ?? `ID: ${user.id}`})</option>
+                {/each}
+              </select>
+            {:else}
+              <input
+                type="text"
+                placeholder="User ID (e.g. 1)"
+                value={(tab.authPayload.user_id as string) ?? ''}
+                oninput={(e) => {
+                  tab.authPayload.user_id = (e.target as HTMLInputElement).value;
+                  tab.isDirty = true;
+                }}
+                class="h-6 text-[11px] font-mono px-2 rounded border border-amber-500/40 bg-background/80 text-foreground w-28 focus:outline-none focus:ring-1 focus:ring-amber-400"
+              />
+            {/if}
+          </div>
+          <button
+            type="button"
+            onclick={() => {
+              activeSubTab = 'auth';
+              void loadUsers();
+            }}
+            class="text-[11px] text-amber-400 hover:underline shrink-0"
+          >
+            Options
+          </button>
+        </div>
+      {:else}
+        <div class="flex items-center justify-between gap-2 px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-xs">
+          <div class="flex items-center gap-2 min-w-0">
+            <UserCheck class="h-3 w-3 text-emerald-400 shrink-0" />
+            <span class="text-[11px] text-emerald-300">
+              Sanctum Act As: <strong class="font-medium">User #{tab.authPayload.user_id}</strong>
+              {#if activeUserName}
+                ({activeUserName})
+              {/if}
+            </span>
+          </div>
+          <button
+            type="button"
+            onclick={() => {
+              activeSubTab = 'auth';
+              void loadUsers();
+            }}
+            class="text-[10px] text-muted-foreground hover:text-foreground"
+          >
+            Change
+          </button>
+        </div>
+      {/if}
+    {:else if tab.authType === 'bearer'}
+      {#if !tab.authPayload.token}
+        <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-blue-500/10 border border-blue-500/30 text-xs">
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <Shield class="h-3.5 w-3.5 text-blue-400 shrink-0" />
+            <span class="text-foreground/90 font-medium whitespace-nowrap">
+              Requires Bearer Token:
+            </span>
+            <input
+              type="password"
+              placeholder="Enter Bearer token..."
+              value={(tab.authPayload.token as string) ?? ''}
+              oninput={(e) => {
+                tab.authPayload.token = (e.target as HTMLInputElement).value;
+                tab.isDirty = true;
+              }}
+              class="h-6 text-[11px] font-mono px-2 rounded border border-blue-500/40 bg-background/80 text-foreground flex-1 max-w-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+            />
+          </div>
+          <button
+            type="button"
+            onclick={() => { activeSubTab = 'auth'; }}
+            class="text-[11px] text-blue-400 hover:underline shrink-0"
+          >
+            Options
+          </button>
+        </div>
+      {:else}
+        <div class="flex items-center justify-between gap-2 px-2.5 py-1 rounded bg-blue-500/10 border border-blue-500/20 text-xs">
+          <div class="flex items-center gap-2 min-w-0">
+            <Shield class="h-3 w-3 text-blue-400 shrink-0" />
+            <span class="text-[11px] text-blue-300">
+              Bearer Token active
+            </span>
+          </div>
+          <button
+            type="button"
+            onclick={() => { activeSubTab = 'auth'; }}
+            class="text-[10px] text-muted-foreground hover:text-foreground"
+          >
+            Edit
+          </button>
+        </div>
+      {/if}
+    {:else if tab.authType === 'basic'}
+      {#if !tab.authPayload.username && !tab.authPayload.password}
+        <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-indigo-500/10 border border-indigo-500/30 text-xs">
+          <div class="flex items-center gap-2 min-w-0">
+            <User class="h-3.5 w-3.5 text-indigo-400 shrink-0" />
+            <span class="text-foreground/90">
+              Requires HTTP Basic Auth
+            </span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onclick={() => { activeSubTab = 'auth'; }}
+            class="h-6 px-2 text-[11px] font-medium border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/20 shrink-0"
+          >
+            Set Credentials
+          </Button>
+        </div>
+      {/if}
+    {:else if tab.endpoint && tab.endpoint.auth === 'none'}
+      <div class="flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground/70">
+        <Globe class="h-3 w-3 shrink-0" />
+        <span>Public endpoint — no authentication required</span>
+      </div>
+    {/if}
   </div>
 
   <!-- Request Details Tabs -->
   <div class="flex-1 flex flex-col min-h-0">
-    <Tabs value={pathParamKeys.length > 0 ? 'path' : 'params'} class="flex-1 flex flex-col min-h-0">
+    <Tabs bind:value={activeSubTab} class="flex-1 flex flex-col min-h-0">
       <div class="px-3 border-b border-border bg-card/30">
         <TabsList class="h-9 bg-transparent p-0 gap-4">
           {#if pathParamKeys.length > 0}
@@ -242,7 +542,12 @@
             value="auth"
             class="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-9 px-1 text-xs gap-1.5"
           >
-            Auth {tab.authType !== 'none' ? `(${tab.authType})` : ''}
+            Auth {tab.authType !== 'none' ? `(${tab.authType.replace(/_/g, ' ')})` : ''}
+            {#if hasAuthWarning}
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" title="Authentication required"></span>
+            {:else if tab.authType !== 'none'}
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400" title="Authentication configured"></span>
+            {/if}
           </TabsTrigger>
           <TabsTrigger
             value="body"

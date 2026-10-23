@@ -128,7 +128,7 @@ final class RouterEndpointSource implements EndpointSource
 
         $uri = $route->uri();
         $routeMiddleware = array_values(array: $route->gatherMiddleware());
-        $authType = $this->detectAuthType(middleware: $routeMiddleware);
+        $authType = $this->detectAuthType(route: $route, middleware: $routeMiddleware);
         $parameters = $this->extractRouteParameters(uri: $uri);
         $fields = $this->extractFields(route: $route);
 
@@ -171,23 +171,58 @@ final class RouterEndpointSource implements EndpointSource
     /**
      * @param  array<string>  $middleware
      */
-    private function detectAuthType(array $middleware): AuthType
+    private function detectAuthType(Route $route, array $middleware): AuthType
     {
         foreach ($middleware as $m) {
-            if (str_contains(haystack: $m, needle: 'sanctum')) {
+            $lower = strtolower(string: $m);
+
+            if (str_contains(haystack: $lower, needle: 'sanctum')) {
                 return AuthType::SanctumActAs;
             }
 
-            if (str_contains(haystack: $m, needle: 'auth:api')) {
+            if (str_contains(haystack: $lower, needle: 'api_key') || str_contains(haystack: $lower, needle: 'apikey') || str_contains(haystack: $lower, needle: 'api-key')) {
+                return AuthType::ApiKey;
+            }
+
+            if (str_contains(haystack: $lower, needle: 'auth:api') || str_contains(haystack: $lower, needle: 'bearer')) {
                 return AuthType::Bearer;
             }
 
-            if (str_contains(haystack: $m, needle: 'auth:basic')) {
+            if (str_contains(haystack: $lower, needle: 'auth:basic') || str_contains(haystack: $lower, needle: 'basic')) {
                 return AuthType::Basic;
             }
 
             if ($m === 'auth' || str_starts_with(haystack: $m, needle: 'auth:')) {
                 return AuthType::Session;
+            }
+        }
+
+        $action = $route->getActionName();
+        $actionLower = strtolower(string: $action);
+
+        if (str_contains(haystack: $actionLower, needle: 'apikey') || str_contains(haystack: $actionLower, needle: 'api_key')) {
+            return AuthType::ApiKey;
+        }
+
+        if (str_contains(haystack: $actionLower, needle: 'basicauth')) {
+            return AuthType::Basic;
+        }
+
+        $reflection = $this->reflector->getReflection(action: $route->getAction(key: 'uses'));
+
+        if ($reflection !== null) {
+            $docComment = $reflection->getDocComment();
+
+            if (is_string(value: $docComment)) {
+                $docLower = strtolower(string: $docComment);
+
+                if (str_contains(haystack: $docLower, needle: 'x-api-key') || str_contains(haystack: $docLower, needle: 'api_key')) {
+                    return AuthType::ApiKey;
+                }
+
+                if (str_contains(haystack: $docLower, needle: '@authenticated')) {
+                    return AuthType::SanctumActAs;
+                }
             }
         }
 

@@ -9,6 +9,7 @@ export class EndpointsState {
   searchQuery = $state<string>('');
   selectedGroup = $state<string | null>(null);
   apiScope = $state<string>('all');
+  authFilter = $state<string>('all');
   groupBy = $state<GroupByMode>('resource');
   collapsedGroups = $state<string[]>([]);
   loading = $state<boolean>(false);
@@ -32,7 +33,15 @@ export class EndpointsState {
       const matchesGroup =
         this.selectedGroup === null || (e.group ?? 'General') === this.selectedGroup;
 
-      return matchesScope && matchesSearch && matchesGroup;
+      const matchesAuth =
+        this.authFilter === 'all' ||
+        (this.authFilter === 'public' && (e.auth === 'none' || !e.auth)) ||
+        (this.authFilter === 'sanctum' && e.auth === 'sanctum_act_as') ||
+        (this.authFilter === 'api_key' && e.auth === 'api_key') ||
+        (this.authFilter === 'basic' && e.auth === 'basic') ||
+        e.auth === this.authFilter;
+
+      return matchesScope && matchesSearch && matchesGroup && matchesAuth;
     });
   }
 
@@ -117,6 +126,30 @@ export class EndpointsState {
 
   setApiScope(scope: string): void {
     this.apiScope = scope;
+  }
+
+  setAuthFilter(filter: string): void {
+    this.authFilter = filter;
+  }
+
+  get authCounts(): { all: number; sanctum: number; api_key: number; basic: number; public: number } {
+    let sanctum = 0;
+    let apiKey = 0;
+    let basic = 0;
+    let pub = 0;
+    for (const ep of this.endpoints) {
+      if (ep.auth === 'sanctum_act_as') sanctum++;
+      else if (ep.auth === 'api_key') apiKey++;
+      else if (ep.auth === 'basic') basic++;
+      else if (ep.auth === 'none' || !ep.auth) pub++;
+    }
+    return {
+      all: this.endpoints.length,
+      sanctum,
+      api_key: apiKey,
+      basic,
+      public: pub,
+    };
   }
 
   setSelectedGroup(group: string | null): void {

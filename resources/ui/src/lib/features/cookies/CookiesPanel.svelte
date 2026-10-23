@@ -27,7 +27,7 @@
   let searchQuery = $state('');
   let copiedName = $state<string | null>(null);
 
-  const cookies = $derived.by<CapturedCookie[]>(() => {
+  const cookies = $derived.by<readonly CapturedCookie[]>(() => {
     const activeResult = tabsState.active?.lastResult ?? requestState.activeResult;
     return activeResult?.cookies ?? [];
   });

@@ -17,7 +17,7 @@
     Check,
   } from '@lucide/svelte';
   import { generateId } from '$lib/utils';
-  import type { HttpMethod } from '$lib/domain/endpoint';
+  import type { HttpMethod, AuthType } from '$lib/domain/endpoint';
 
   export interface SavedRequestItem {
     readonly id: string;
@@ -29,7 +29,7 @@
     readonly query: Record<string, string>;
     readonly pathParams?: Record<string, string>;
     readonly body?: string;
-    readonly authType?: string;
+    readonly authType?: AuthType;
     readonly authPayload?: Record<string, unknown>;
     readonly savedAt: number;
   }

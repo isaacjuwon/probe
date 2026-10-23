@@ -11,6 +11,8 @@ export interface BootstrapConfig {
   };
 }
 
+export type ProbeConfig = BootstrapConfig;
+
 declare global {
   interface Window {
     __PROBE__?: BootstrapConfig;

@@ -25,6 +25,8 @@ export interface ProbeServices {
   readonly commands: CommandRegistry;
 }
 
+export type Services = ProbeServices;
+
 export function createDefaultServices(): ProbeServices {
   const api = new ProbeApi();
   const endpoints = new EndpointClient(api);

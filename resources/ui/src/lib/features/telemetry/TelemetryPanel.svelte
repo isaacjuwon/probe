@@ -46,8 +46,8 @@
       for (const q of activeResult.queries) {
         list.push({
           sql: q.sql,
-          time: q.time,
-          connection: q.connection,
+          time: q.time ?? 0,
+          connection: q.connection ?? 'default',
           timestamp: Date.now(),
         });
       }
