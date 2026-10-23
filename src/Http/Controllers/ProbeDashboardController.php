@@ -27,11 +27,17 @@ final class ProbeDashboardController
         /** @var mixed $scribeEnabled */
         $scribeEnabled = config(key: 'probe.scribe.enabled', default: 'auto');
 
+        $jsPath = public_path(path: 'vendor/probe/probe.js');
+        $cssPath = public_path(path: 'vendor/probe/probe.css');
+
+        $jsVersion = file_exists(filename: $jsPath) ? (string) filemtime(filename: $jsPath) : (string) time();
+        $cssVersion = file_exists(filename: $cssPath) ? (string) filemtime(filename: $cssPath) : (string) time();
+
         return $this->viewFactory->make(
             view: 'probe::app',
             data: [
-                'probeScript' => asset(path: 'vendor/probe/probe.js'),
-                'probeStyle' => asset(path: 'vendor/probe/probe.css'),
+                'probeScript' => asset(path: 'vendor/probe/probe.js').'?v='.$jsVersion,
+                'probeStyle' => asset(path: 'vendor/probe/probe.css').'?v='.$cssVersion,
                 'bootstrap' => [
                     'basePath' => $basePath,
                     'csrfToken' => csrf_token(),
