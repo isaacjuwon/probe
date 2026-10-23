@@ -17,15 +17,21 @@
 
 It automatically inspects your application's routes, reflects on controller actions and `FormRequest` classes, maps validation rules into request body schemas with realistic faker examples, and lets you execute API requests in real time while capturing SQL queries, logs, dumps, and execution durations.
 
+📖 **Documentation**: [Comprehensive User Guide](docs/USER_GUIDE.md) &bull; 📰 **Article**: [Introducing Probe](docs/INTRODUCING_PROBE.md)
+
 ## Highlights
 
-- 🚀 **Zero Configuration Endpoint Discovery**: Discovers all registered API routes, URI parameters, HTTP verbs, and controller bindings without manual annotations.
-- 📋 **Deep Validation Reflection**: Extracts validation constraints from `FormRequest` classes, inline `$request->validate()` calls, and Spatie Laravel Data objects into typed parameter schemas.
-- ⚡ **Real-Time Request Relay**: Executes requests against your local application or allowed external services, tracking round-trip duration, response headers, status codes, and JSON payloads.
-- 🔍 **Integrated Query & Log Inspector**: Automatically captures database queries executed during each request (with exact SQL, parameters, and timings), framework logs, and dumped variables.
-- 🎨 **Ferrite Theme UI**: Modern dark-mode SPA built with Svelte 5 runes, Tailwind CSS v4, and CodeMirror 6 JSON editor. Fully precompiled into `public/probe.js` and `public/probe.css`—no Node or frontend tooling required in consuming apps.
+- 🚀 **Zero Configuration Endpoint Discovery**: Discovers all registered API routes, URI parameters, HTTP verbs, and controller bindings without manual annotations or attributes.
+- 🌿 **Standard API Versioning & Global Switcher**: Auto-detects versions across URI path segments (`/api/v1/...`, `/api/2026-10-01/...`), route group prefixes, route names (`v1.orders.index`), controller namespaces, and docblocks. Features a global top-bar version switcher and smart domain resource grouping.
+- 🔒 **Smart Route Auth Indicators & Resolution**: Real-time identification of Sanctum, API Key, Bearer, Basic, and Session auth with minimal visual badges. Built-in 1-click Sanctum user impersonation and inline API key resolution banners directly below the URL bar.
+- 🧪 **One-Click Pest Test Generator**: Turn any exploratory API request and response into an idiomatic Pest PHP feature test ready to paste into your test suite with one click.
+- 🛡️ **Zero Migrations & Dry Run Protection**: Requires 0 database tables. Test destructive mutations (`POST`, `PUT`, `DELETE`) safely with automatic database transaction rollbacks.
+- 📋 **Deep Validation Reflection**: Extracts validation constraints from `FormRequest` classes, inline `$request->validate()` calls, and Spatie Laravel Data objects into typed parameter schemas with smart example generators.
+- ⚡ **Real-Time Request Relay**: Executes requests directly via Laravel's HTTP Kernel in-process (preventing single-threaded worker deadlocks with `php artisan serve`) or HTTP client, tracking round-trip duration, response headers, and payloads.
+- 🔍 **Integrated SQL Query & Log Inspector**: Automatically captures database queries executed during each request (with exact SQL, parameters, and timings), framework logs, and dumped variables.
+- 🍪 **Decrypted Cookie Inspector**: Real-time inspection and decryption of Laravel encrypted cookies, session identifiers, and signed cookies.
+- 🎨 **Ferrite Theme UI**: Modern dark-mode SPA built with Svelte 5 runes, Tailwind CSS v4, and CodeMirror 6 JSON editor. Precompiled into `public/probe.js` and `public/probe.css`—no Node or frontend tooling required in consuming apps.
 - 💾 **IndexedDB & File Persistence**: Tabs and environment variables persist across browser reloads via IndexedDB. Saved request templates are stored locally in JSON format with automatic secret masking.
-- 🛡️ **Zero Database Migrations & Safe by Default**: Requires 0 database tables, restricts execution to authorized local/testing environments via Laravel Gate, and guards against unauthorized outbound hosts.
 - ⌨️ **Keyboard Centric**: Built-in command palette (`Cmd+K` / `Ctrl+K`), quick dispatch (`Cmd+Enter` / `Ctrl+Enter`), tab switching, and `{{ variable }}` interpolation.
 
 ---
@@ -183,45 +189,59 @@ return [
 
 ## User Interface & Features
 
-### 1. Endpoint Tree & Search
-The left sidebar presents all discovered endpoints grouped by controller resource (e.g., `Users`, `Posts`, `Orders`).
-- Quick search filters endpoints by URI or HTTP method.
-- Click any endpoint to open it into the active tab or launch a new tab.
+### 1. Endpoint Tree & Smart Resource Grouping
+The left sidebar presents all discovered endpoints organized by domain resource (e.g. `Orders`, `Users`, `Products`), controller, or version:
+- **Standard API Versioning**: Automatically reflects version identifiers from URI segments (`/api/v1/...`, `/api/2026-10-01/...`), route prefixes, route names (`v1.orders.index`), controller namespaces, middleware, and docblocks.
+- **Smart Resource Grouping**: Version segments are automatically stripped from group names so your endpoints group cleanly under their domain resource (`Orders`) instead of being dumped into monolithic `V1` folders, with clear `V1` or `V2` badges on each route row.
+- **Quick Search & Scope Filter**: Filter between API routes, Web routes, or search by URI or HTTP method.
 
-### 2. Tab Management & Persistence
-- Work with multiple concurrent API requests using independent tabs.
-- Active tabs and unsent drafts are continuously synchronized to browser IndexedDB, persisting across page refreshes.
-- Use `Cmd+T` / `Ctrl+T` to open a new tab, and `Cmd+W` / `Ctrl+W` to close the active tab.
+### 2. Global Top-Header Version Switcher
+When your application contains multiple API versions:
+- An interactive version dropdown appears in the global top header (`All Versions`, `v1`, `v2`, `unversioned`).
+- Scopes the entire route tree to the selected version in one click.
+- Preserves your selection across browser reloads via `localStorage`.
 
-### 3. Request Builder
-- **Parameters & Query Strings**: Key-value editor for URI path parameters and query strings.
-- **Headers**: Add custom headers, with pre-configured suggestions (`Accept: application/json`, etc.).
-- **Authentication**:
-  - `None`: Unauthenticated requests.
-  - `Bearer`: Automatically injects `Authorization: Bearer <token>`.
-  - `Basic`: Base64 encodes username and password.
-  - `API Key`: Configurable header key (e.g., `X-API-KEY`) and token value.
-- **Body Editor**: Full-featured CodeMirror 6 JSON editor with syntax error detection, bracket matching, and format-on-click.
+### 3. Smart Route Auth Indicators & 1-Click Resolution
+Probe detects your route middleware and controller annotations to indicate required security:
+- **Minimal Icon Badges**: Route rows display clean, color-coded icons (🔒 Sanctum, 🔑 API Key, 👤 Basic, 🛡️ Bearer, 🍪 Session). Public routes remain badge-free to eliminate clutter.
+- **Auth Filter Pills**: Clickable pills at the top of the sidebar let you filter routes by authentication scheme with real-time route counts (`All`, `🔒`, `🔑`, `👤`, `🌐`).
+- **1-Click Sanctum Persona Switcher**: When selecting a Sanctum-protected route, a user dropdown appears directly below the URL bar allowing you to impersonate any application user in 1 click.
+- **Inline API Key Input**: When selecting an API Key-protected route, an inline header input (`Requires API Key: X-API-Key`) appears directly below the URL bar so you can paste your key immediately without leaving the request view.
+- **Auth Mismatch Warnings**: If your active tab auth does not match the route's expected auth scheme, Probe alerts you and provides an instant resolution button.
 
-### 4. Response & Telemetry Viewer
-When a request is sent, Probe displays:
-- **Status & Timing**: HTTP response status code, status text, and round-trip duration in milliseconds.
-- **Headers & Payload**: Formatted, syntax-highlighted response body with one-click copy.
-- **Database Queries**: Complete list of SQL queries triggered during the request, showing execution time and parameter bindings.
-- **Logs & Exceptions**: In-flight logs and exception stack traces captured during request lifecycle.
+### 4. Dry Run Mode (Automatic Database Rollback)
+Next to the **Send** button, toggle the **Dry Run** switch:
+- Dispatches the request inside a database transaction.
+- When the response is received, all database mutations (`INSERT`, `UPDATE`, `DELETE`) are **automatically rolled back**.
+- Safely test destructive API endpoints against local development databases without corrupting test data.
 
-### 5. Template Variables (`{{ variable }}`)
+### 5. Request Builder & Magic Example Generation
+- **Path & Query Parameters**: Dedicated editors for URI `{param}` placeholders and query strings.
+- **Headers**: Custom header editor with autocomplete suggestions (`Accept: application/json`, etc.).
+- **CodeMirror 6 JSON Editor**: Dark syntax-highlighted editor with bracket matching, formatting, and JSON validation.
+- **Magic Example Generation**: Probe analyzes your `FormRequest` validation rules (e.g. `email`, `in:admin,user`, `min:18`) and pre-populates realistic sample payload values automatically.
+
+### 6. Response Viewer & Real-Time Telemetry
+When a request is executed (`Cmd+Enter` / `Ctrl+Enter`):
+- **Status & Duration**: HTTP status badge and exact round-trip execution duration in milliseconds.
+- **1-Click Pest Feature Test Generator**: Click **Copy as Pest Test** to generate an idiomatic Pest PHP feature test based on the actual request and response, ready to paste directly into your test suite.
+- **Database Telemetry**: Dedicated tab listing every executed SQL query with parameter bindings, execution time, and slow-query warnings.
+- **Decrypted Cookie Inspector**: Real-time inspection of encrypted cookies, session identifiers, and signed cookies with in-app decryption and JSON parsing.
+- **Validation Errors (422 Diffing)**: Inspect exact failing `FormRequest` rules and fields side-by-side.
+- **Stream Events (SSE)**: Built-in event stream viewer for Server-Sent Events with timestamped event cards.
+
+### 7. Template Variables (`{{ variable }}`)
 Any URL, header value, query parameter, or JSON body string can reference variables using double curly braces:
 ```
 http://localhost:8000/api/users/{{ userId }}
 Authorization: Bearer {{ apiToken }}
 ```
-Variables can be managed dynamically from the environment settings panel or command palette.
+Variables can be managed dynamically from the environment settings panel or command palette with live preview interpolation.
 
-### 6. Command Palette
+### 8. Command Palette & Keyboard Shortcuts
 Press `Cmd+K` or `Ctrl+K` to open the command palette:
 - Filter and jump directly to any endpoint.
-- Trigger actions: Send request (`Cmd+Enter`), open new tab, duplicate tab, or toggle dark theme.
+- Trigger actions: Send request (`Cmd+Enter`), open new tab (`Cmd+T`), duplicate tab, close tab (`Cmd+W`), or toggle theme.
 
 ---
 

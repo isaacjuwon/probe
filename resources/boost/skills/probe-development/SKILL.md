@@ -57,7 +57,26 @@ To ensure endpoints are discovered with rich body schemas:
 
 Probe parses rules (`required`, `email`, `in:a,b`, `numeric`, `min`, `max`, `nullable`, `boolean`, `array`) and automatically derives sample values.
 
-### 4. Relay Transports & Dry Run Mode
+### 4. API Versioning & Route Grouping
+
+Probe automatically identifies API versions across multiple standard conventions:
+- URI segments (e.g. `/api/v1/...`, `/api/2026-10-01/...`)
+- Route group prefixes (`Route::prefix('v1')`)
+- Route names (`v1.orders.index`)
+- Controller namespaces (`App\Http\Controllers\Api\V1\...`)
+- Middleware (`version:v1`)
+- DocBlocks (`@version v1`)
+
+In **Resource Grouping** mode, version prefixes are automatically stripped from group names so routes group under business entities (`Orders`, `Products`), with `V1`/`V2` badges on individual endpoints. A global version switcher in the dashboard header allows filtering by version.
+
+### 5. Authentication Strategies
+
+Probe detects route protection from middleware (`auth:sanctum`, `api_key`, `auth:basic`, `auth:api`, web session cookies) and controller docblocks:
+- Minimal color-coded icon badges (🔒, 🔑, 👤, 🛡️, 🍪) on route rows.
+- 1-click Sanctum persona switcher in the dashboard to impersonate users without logging in.
+- In-line API key headers input right below the URL bar.
+
+### 6. Relay Transports & Dry Run Mode
 
 - **In-Process Kernel Dispatch (Default)**: Probe dispatches requests directly through Laravel's HTTP Kernel (`$kernel->handle($subRequest)`) without loopback sockets, avoiding single-threaded worker deadlocks when running `php artisan serve`.
 - **Dry Run Mode**: Wrap any relay request in an isolated database transaction that automatically rolls back when the request completes:
@@ -70,12 +89,12 @@ Probe parses rules (`required`, `email`, `in:a,b`, `numeric`, `min`, `max`, `nul
   ]);
   ```
 
-### 5. Running Commands
+### 7. Running Commands
 
 - Export API catalog: `php artisan probe:export > api.json`
 - Synchronize Scribe documentation: `php artisan probe:scribe-sync`
 
-### 6. Testing Applications Using Probe
+### 8. Testing Applications Using Probe
 
 - When testing Probe features in application test suites, use `Illuminate\Support\Facades\Http::fake()` to stub relayed requests:
 
