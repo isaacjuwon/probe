@@ -1,8 +1,19 @@
 # Release Notes
 
-## [Unreleased](https://github.com/vendor-name/probe/compare/v0.1.0...1.x)
+## [Unreleased](https://github.com/isaacjuwon/probe/compare/v0.1.0...master)
 
+## [v0.1.0](https://github.com/isaacjuwon/probe/releases/tag/v0.1.0) - 2026-10-23
 
-## [v0.1.0](https://github.com/vendor-name/probe/compare/...v0.1.0) - 202x-xx-xx
+Initial release of **Probe** — Dev-only in-app REST client and API inspector for Laravel 12 & 13.
 
-Initial pre-release.
+### Features
+- **Zero-Config Endpoint Discovery**: Automatic detection of registered routes, URI parameters, and HTTP verbs without annotations or attributes.
+- **REST & Laravel API Versioning**: Multi-strategy API version detection (URI paths, route prefixes, route names, controller namespaces, middleware, docblocks), domain-based resource grouping, and top-bar version switcher.
+- **Route Auth Detection & Persona Switching**: Visual auth badges for Sanctum, API Key, Bearer, Basic, and Session auth; 1-click Sanctum user impersonation.
+- **Validation Rule Reflection**: Automatic schema derivation from FormRequests, inline `$request->validate()`, and Spatie Laravel Data with realistic faker examples.
+- **Real-Time Request Relay**: In-process dispatch through Laravel HTTP Kernel (eliminating `artisan serve` single-threaded worker deadlocks) and standard HTTP transport.
+- **Dry Run Mode**: Safe testing of destructive mutations (`POST`, `PUT`, `DELETE`) with automatic database transaction rollback.
+- **Telemetry & Cookie Profiler**: Live capture and inspection of SQL queries (with execution times and connection info), application logs, dumped variables, and decrypted Laravel cookies.
+- **One-Click Pest Test Generator**: Turn any exploratory request/response into an idiomatic Pest PHP feature test.
+- **Precompiled Ferrite Theme UI**: Responsive, zero-node-dependency Svelte 5 SPA with Ferrite dark and high-contrast light themes, CodeMirror 6 JSON editor, and keyboard shortcuts (`Cmd+K` command palette, `Cmd+Enter` dispatch).
+- **Artisan Tooling**: `probe:install`, `probe:export` (OpenAPI/Postman/Scribe catalog export), and `probe:scribe-sync`.
