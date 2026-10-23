@@ -7,6 +7,7 @@ use Isaacjuwon\Probe\Contracts\EndpointSource;
 use Isaacjuwon\Probe\Contracts\RelayTransport;
 use Isaacjuwon\Probe\Contracts\RequestRepository;
 use Isaacjuwon\Probe\Probe;
+use Isaacjuwon\Probe\ProbeServiceProvider;
 
 it('merges probe configuration', function (): void {
     expect(config(key: 'probe.path'))->toBe('probe')
@@ -49,4 +50,12 @@ it('forbids dashboard access when viewProbe gate denies', function (): void {
     $response = $this->get(uri: '/probe');
 
     $response->assertForbidden();
+});
+
+it('preserves an existing viewProbe gate if already defined before provider boot', function (): void {
+    Gate::define(ability: 'viewProbe', callback: static fn (): bool => false);
+
+    app()->register(provider: ProbeServiceProvider::class, force: true);
+
+    expect(Gate::allows(ability: 'viewProbe'))->toBeFalse();
 });

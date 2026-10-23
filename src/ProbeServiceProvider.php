@@ -76,22 +76,24 @@ final class ProbeServiceProvider extends ServiceProvider
 
     private function bootGate(): void
     {
-        Gate::define(
-            ability: 'viewProbe',
-            callback: function (mixed $user = null): bool {
-                /** @var list<string> $allowed */
-                $allowed = config(
-                    key: 'probe.allowed_environments',
-                    default: ['local', 'testing'],
-                );
+        if (! Gate::has(ability: 'viewProbe')) {
+            Gate::define(
+                ability: 'viewProbe',
+                callback: function (mixed $user = null): bool {
+                    /** @var list<string> $allowed */
+                    $allowed = config(
+                        key: 'probe.allowed_environments',
+                        default: ['local', 'testing'],
+                    );
 
-                return in_array(
-                    needle: $this->app->environment(),
-                    haystack: $allowed,
-                    strict: true,
-                );
-            },
-        );
+                    return in_array(
+                        needle: $this->app->environment(),
+                        haystack: $allowed,
+                        strict: true,
+                    );
+                },
+            );
+        }
     }
 
     private function registerSecurity(): void

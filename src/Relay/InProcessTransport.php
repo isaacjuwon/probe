@@ -152,7 +152,7 @@ final class InProcessTransport implements RelayTransport
             body: ['error' => $exception->getMessage()],
             exceptions: [
                 [
-                    'class' => get_class(object: $exception),
+                    'class' => $exception::class,
                     'message' => $exception->getMessage(),
                     'code' => $exception->getCode(),
                     'file' => $exception->getFile(),
