@@ -1,0 +1,28 @@
+name: Update Packagist
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  notify-packagist:
+    name: Notify Packagist
+    runs-on: ubuntu-latest
+    if: github.repository == 'isaacjuwon/probe'
+
+    steps:
+      - name: Trigger Packagist Update
+        env:
+          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_API_TOKEN }}
+        if: env.PACKAGIST_TOKEN != ''
+        run: |
+          curl -s -f -X POST \
+            -H "Content-Type: application/json" \
+            "https://packagist.org/api/update-package?username=isaacjuwon&apiToken=${PACKAGIST_TOKEN}" \
+            -d '{"repository":{"url":"https://packagist.org/packages/isaacjuwon/probe"}}'

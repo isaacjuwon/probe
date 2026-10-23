@@ -2,6 +2,12 @@
 
 ## [Unreleased](https://github.com/isaacjuwon/probe/compare/v0.1.0 - Initial Release...HEAD)
 
+### Fixed
+
+- Collapse endpoint folders by default on initial load and grouping changes.
+- Fix explorer sidebar scroll containment by enforcing `min-h-0` on flex items and adding `overflow-hidden` to `ScrollArea`.
+- Fix vertical scrollbar orientation variant matching in Ferrite Tailwind styles.
+
 ## [v0.1.0 - Initial Release](https://github.com/isaacjuwon/probe/compare/v0.1.0...v0.1.0 - Initial Release) - 2026-10-23
 
 Initial release of **Probe** - Dev-only in-app REST client and API inspector for Laravel 12 & 13.

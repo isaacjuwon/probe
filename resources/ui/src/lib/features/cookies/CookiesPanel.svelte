@@ -104,9 +104,9 @@
   }
 </script>
 
-<div class="flex flex-col h-full bg-card/30">
+<div class="flex flex-col h-full min-h-0 bg-card/30">
   <!-- Header -->
-  <div class="p-3 border-b border-border space-y-2.5">
+  <div class="p-3 border-b border-border space-y-2.5 shrink-0">
     <div class="flex items-center justify-between">
       <span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
         <Cookie class="h-3.5 w-3.5 text-amber-500" />
@@ -131,7 +131,7 @@
   </div>
 
   <!-- Content -->
-  <ScrollArea class="flex-1">
+  <ScrollArea class="flex-1 min-h-0">
     {#if cookies.length === 0}
       <div class="p-6 text-center text-xs text-muted-foreground space-y-3">
         <Cookie class="h-8 w-8 mx-auto opacity-40 text-amber-500" />

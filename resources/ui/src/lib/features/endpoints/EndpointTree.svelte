@@ -78,8 +78,8 @@
   }
 </script>
 
-<div class="flex flex-col h-full border-r border-border bg-card/30">
-  <div class="p-3 border-b border-border space-y-2">
+<div class="flex flex-col h-full min-h-0 border-r border-border bg-card/30">
+  <div class="p-3 border-b border-border space-y-2 shrink-0">
     <div class="flex items-center justify-between">
       <span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Endpoints ({endpointsState.endpoints.length})
@@ -206,13 +206,13 @@
         variant="ghost"
         size="icon-sm"
         onclick={() => {
-          if (endpointsState.collapsedGroups.length > 0) {
+          if (endpointsState.isAllCollapsed) {
             endpointsState.expandAll();
           } else {
             endpointsState.collapseAll();
           }
         }}
-        title={endpointsState.collapsedGroups.length > 0 ? 'Expand all folders' : 'Collapse all folders'}
+        title={endpointsState.isAllCollapsed ? 'Expand all folders' : 'Collapse all folders'}
         class="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
       >
         <ChevronsUpDown class="h-3.5 w-3.5" />
@@ -285,7 +285,7 @@
     </div>
   </div>
 
-  <ScrollArea class="flex-1 p-2">
+  <ScrollArea class="flex-1 min-h-0">
     {#if endpointsState.loading && endpointsState.endpoints.length === 0}
       <div class="p-4 text-center text-xs text-muted-foreground">Loading endpoints...</div>
     {:else if endpointsState.error}
@@ -293,7 +293,7 @@
     {:else if endpointsState.filtered.length === 0}
       <div class="p-4 text-center text-xs text-muted-foreground">No endpoints found</div>
     {:else}
-      <div class="space-y-1.5">
+      <div class="p-2 space-y-1.5">
         {#each endpointsState.groups as group (group)}
           {@const groupEndpoints = endpointsState.getEndpointsForGroup(group)}
           {#if groupEndpoints.length > 0}

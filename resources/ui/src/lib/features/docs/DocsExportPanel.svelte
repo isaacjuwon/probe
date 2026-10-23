@@ -130,9 +130,9 @@
   }
 </script>
 
-<div class="flex flex-col h-full bg-card/30">
+<div class="flex flex-col h-full min-h-0 bg-card/30">
   <!-- Header -->
-  <div class="p-3 border-b border-border space-y-2.5">
+  <div class="p-3 border-b border-border space-y-2.5 shrink-0">
     <div class="flex items-center justify-between">
       <span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
         <BookOpen class="h-3.5 w-3.5 text-primary" />
@@ -176,7 +176,7 @@
   </div>
 
   <!-- Exporters Section -->
-  <ScrollArea class="flex-1 p-3 space-y-3">
+  <ScrollArea class="flex-1 min-h-0 p-3 space-y-3">
     <!-- OpenAPI Exporter Card -->
     <div class="p-3 rounded-lg bg-background/70 border border-border/70 space-y-2 hover:border-primary/40 transition-colors">
       <div class="flex items-center gap-2">

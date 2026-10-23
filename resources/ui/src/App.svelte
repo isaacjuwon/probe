@@ -455,7 +455,7 @@
         class="shrink-0 h-full flex flex-col border-r border-border bg-card/20 select-none overflow-hidden"
       >
         <!-- Secondary Panel Dynamic Header -->
-        <div class="h-9 px-3 border-b border-border/80 flex items-center justify-between bg-card/50">
+        <div class="h-9 px-3 border-b border-border/80 flex items-center justify-between bg-card/50 shrink-0">
           <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {#if activeTool === 'endpoints'}
               <FolderTree class="h-3.5 w-3.5 text-primary" />
@@ -496,7 +496,7 @@
         </div>
 
         <!-- Secondary Panel Body -->
-        <div class="flex-1 min-h-0 overflow-hidden">
+        <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
           {#if activeTool === 'endpoints'}
             <EndpointTree {endpointsState} {tabsState} />
           {:else if activeTool === 'history'}

@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant data-vertical (&:where([data-orientation="vertical"], [data-vertical]));
+@custom-variant data-horizontal (&:where([data-orientation="horizontal"], [data-horizontal]));
 
 /* Ferrite light: paper-white canvas with high-contrast warm graphite, defined borders, and rich rust accent. */
 :root {

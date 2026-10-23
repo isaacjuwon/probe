@@ -12,9 +12,21 @@ export class EndpointsState {
   authFilter = $state<string>('all');
   versionFilter = $state<string>('all');
   groupBy = $state<GroupByMode>('resource');
-  collapsedGroups = $state<string[]>([]);
+  expandedGroups = $state<string[]>([]);
   loading = $state<boolean>(false);
   error = $state<string | null>(null);
+
+  get collapsedGroups(): string[] {
+    return this.groups.filter((g) => !this.expandedGroups.includes(g));
+  }
+
+  set collapsedGroups(groups: string[]) {
+    this.expandedGroups = this.groups.filter((g) => !groups.includes(g));
+  }
+
+  get isAllCollapsed(): boolean {
+    return this.expandedGroups.length === 0;
+  }
 
   get filtered(): Endpoint[] {
     return this.endpoints.filter((e) => {
@@ -115,11 +127,11 @@ export class EndpointsState {
         this.versionFilter = savedVersion;
       }
       try {
-        const savedCollapsed = localStorage.getItem('probe_collapsed_groups');
-        if (savedCollapsed) {
-          const parsed = JSON.parse(savedCollapsed);
+        const savedExpanded = localStorage.getItem('probe_expanded_groups');
+        if (savedExpanded) {
+          const parsed = JSON.parse(savedExpanded);
           if (Array.isArray(parsed)) {
-            this.collapsedGroups = parsed;
+            this.expandedGroups = parsed;
           }
         }
       } catch {
@@ -210,8 +222,10 @@ export class EndpointsState {
 
   setGroupBy(mode: GroupByMode): void {
     this.groupBy = mode;
+    this.expandedGroups = [];
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('probe_group_by', mode);
+      localStorage.setItem('probe_expanded_groups', JSON.stringify([]));
     }
   }
 
@@ -219,31 +233,35 @@ export class EndpointsState {
     if (this.searchQuery.trim() !== '') {
       return false;
     }
-    return this.collapsedGroups.includes(group);
+    return !this.expandedGroups.includes(group);
+  }
+
+  isGroupExpanded(group: string): boolean {
+    return !this.isGroupCollapsed(group);
   }
 
   toggleGroup(group: string): void {
-    if (this.collapsedGroups.includes(group)) {
-      this.collapsedGroups = this.collapsedGroups.filter((g) => g !== group);
+    if (this.expandedGroups.includes(group)) {
+      this.expandedGroups = this.expandedGroups.filter((g) => g !== group);
     } else {
-      this.collapsedGroups = [...this.collapsedGroups, group];
+      this.expandedGroups = [...this.expandedGroups, group];
     }
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('probe_collapsed_groups', JSON.stringify(this.collapsedGroups));
+      localStorage.setItem('probe_expanded_groups', JSON.stringify(this.expandedGroups));
     }
   }
 
   expandAll(): void {
-    this.collapsedGroups = [];
+    this.expandedGroups = [...this.groups];
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('probe_collapsed_groups', JSON.stringify([]));
+      localStorage.setItem('probe_expanded_groups', JSON.stringify(this.expandedGroups));
     }
   }
 
   collapseAll(): void {
-    this.collapsedGroups = [...this.groups];
+    this.expandedGroups = [];
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('probe_collapsed_groups', JSON.stringify(this.collapsedGroups));
+      localStorage.setItem('probe_expanded_groups', JSON.stringify([]));
     }
   }
 }
